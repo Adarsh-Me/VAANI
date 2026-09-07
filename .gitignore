@@ -36,3 +36,9 @@ tools/
 
 # Python
 __pycache__/
+
+# Local screenshots / UI dumps
+shot*.png
+tapfb.png
+ui_now.xml
+lat.xml
