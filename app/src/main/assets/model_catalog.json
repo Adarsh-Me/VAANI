@@ -1,0 +1,156 @@
+{
+  "_comment": "iTantra model catalog. Swap ANY model by editing its url/relPath here — no code change needed. Keep sha256 blank to skip integrity checks; keep url blank for manual-install models. External-data ONNX (weights beside a stub) use dataUrl+dataRelPath and must match the .onnx stub's 'location' byte-for-byte.",
+  "models": [
+    {
+      "id": "vad",
+      "type": "vad",
+      "url": "https://raw.githubusercontent.com/snakers4/silero-vad/v4.0/files/silero_vad.onnx",
+      "relPath": "models/silero_vad.onnx",
+      "sizeBytes": 1800000
+    },
+    {
+      "id": "asr-hi",
+      "type": "asr",
+      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/hi/model.int8.onnx",
+      "relPath": "models/asr/hi/model.int8.onnx",
+      "sizeBytes": 197595593,
+      "languages": ["hi"],
+      "_note": "IndicConformer hybrid CTC (INT8, NeMo export, sherpa-compatible). Inputs: audio_signal [B,80,T] 80-dim log-mel fbank; length [B]. Output: logprobs [B,T,5633]; blank id 5632; tokens.txt shared at models/asr/tokens.txt. Apache-2.0 (upstream AI4Bharat MIT)."
+    },
+    {
+      "id": "asr-ta",
+      "type": "asr",
+      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/ta/model.int8.onnx",
+      "relPath": "models/asr/ta/model.int8.onnx",
+      "sizeBytes": 197595513,
+      "languages": ["ta"]
+    },
+    {
+      "id": "asr-bn",
+      "type": "asr",
+      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/bn/model.int8.onnx",
+      "relPath": "models/asr/bn/model.int8.onnx",
+      "sizeBytes": 197595578,
+      "languages": ["bn"]
+    },
+    {
+      "id": "asr-pa",
+      "type": "asr",
+      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/pa/model.int8.onnx",
+      "relPath": "models/asr/pa/model.int8.onnx",
+      "sizeBytes": 197595548,
+      "languages": ["pa"]
+    },
+    {
+      "id": "asr-tok",
+      "type": "asr",
+      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/tokens.txt",
+      "relPath": "models/asr/tokens.txt",
+      "sizeBytes": 67605
+    },
+    {
+      "id": "mt",
+      "type": "mt",
+      "url": "https://huggingface.co/hari31416/indictrans2-indic-indic-dist-320M-ONNX-int8/resolve/main/encoder_model.onnx",
+      "relPath": "models/indictrans2_encoder_int8.onnx",
+      "sizeBytes": 831435,
+      "dataUrl": "https://huggingface.co/hari31416/indictrans2-indic-indic-dist-320M-ONNX-int8/resolve/main/encoder_model.onnx.data",
+      "dataRelPath": "models/encoder_model.onnx.data",
+      "dataSizeBytes": 120068096
+    },
+    {
+      "id": "mt-dec-past",
+      "type": "mt",
+      "url": "https://huggingface.co/hari31416/indictrans2-indic-indic-dist-320M-ONNX-int8/resolve/main/decoder_with_past_model.onnx",
+      "relPath": "models/decoder_with_past_model.onnx",
+      "sizeBytes": 1850619,
+      "_note": "REQUIRED: KV-cache decoder. The no-past decoder re-feed path truncates output (verified vs official translate.py)."
+    },
+    {
+      "id": "mt-dec",
+      "type": "mt",
+      "url": "https://huggingface.co/hari31416/indictrans2-indic-indic-dist-320M-ONNX-int8/resolve/main/decoder_model.onnx",
+      "relPath": "models/indictrans2_decoder_int8.onnx",
+      "sizeBytes": 2037642,
+      "dataUrl": "https://huggingface.co/hari31416/indictrans2-indic-indic-dist-320M-ONNX-int8/resolve/main/decoder_shared.onnx.data",
+      "dataRelPath": "models/decoder_shared.onnx.data",
+      "dataSizeBytes": 203048944,
+      "_note": "No-past decoder: used only for the seed step + encoder KV production."
+    },
+    {
+      "id": "mt-tok",
+      "type": "mt",
+      "url": "https://huggingface.co/hari31416/indictrans2-indic-indic-dist-320M-ONNX-int8/resolve/main/tokenizer_src.json",
+      "relPath": "models/mt/tokenizer_src.json",
+      "sizeBytes": 23876630
+    },
+    {
+      "id": "mt-tok-tgt",
+      "type": "mt",
+      "url": "https://huggingface.co/hari31416/indictrans2-indic-indic-dist-320M-ONNX-int8/resolve/main/tokenizer_tgt.json",
+      "relPath": "models/mt/tokenizer_tgt.json",
+      "sizeBytes": 23870000
+    },
+    {
+      "id": "emotion",
+      "type": "emotion",
+      "url": "",
+      "relPath": "models/emotion2vec.onnx"
+    },
+    {
+      "id": "tts-hi",
+      "type": "tts",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-hi_IN-pratham-medium.tar.bz2",
+      "relPath": "models/tts_hi_IN-medium.tar.bz2",
+      "sizeBytes": 67238438,
+      "extractTo": "models/tts/hi",
+      "languages": ["hi"]
+    },
+    {
+      "id": "tts-ta",
+      "type": "tts",
+      "url": "",
+      "relPath": "models/tts_ta_IN-medium.onnx",
+      "languages": ["ta"]
+    },
+    {
+      "id": "tts-pa",
+      "type": "tts",
+      "url": "",
+      "relPath": "models/tts_pa_IN-medium.onnx",
+      "languages": ["pa"]
+    },
+    {
+      "id": "mms-ta",
+      "type": "mms",
+      "url": "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/tam/model.onnx",
+      "relPath": "models/mms/ta/model.onnx",
+      "sizeBytes": 114032388,
+      "languages": ["ta"]
+    },
+    {
+      "id": "mms-ta-tok",
+      "type": "mms",
+      "url": "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/tam/tokens.txt",
+      "relPath": "models/mms/ta/tokens.txt",
+      "sizeBytes": 375,
+      "languages": ["ta"]
+    },
+    {
+      "id": "mms-pa",
+      "type": "mms",
+      "url": "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/pan/model.onnx",
+      "relPath": "models/mms/pa/model.onnx",
+      "sizeBytes": 114033156,
+      "languages": ["pa"]
+    },
+    {
+      "id": "mms-pa-tok",
+      "type": "mms",
+      "url": "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/pan/tokens.txt",
+      "relPath": "models/mms/pa/tokens.txt",
+      "sizeBytes": 400,
+      "languages": ["pa"]
+    }
+  ]
+}

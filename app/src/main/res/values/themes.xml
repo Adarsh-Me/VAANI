@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose renders all UI; the Activity theme only needs to exist. -->
+    <style name="Theme.ITantra" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/seed</item>
+        <item name="android:statusBarColor">@color/seed</item>
+        <item name="android:navigationBarColor">@color/seed</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

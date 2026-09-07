@@ -1,0 +1,38 @@
+# Gradle / Android / IDE
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing material (never commit)
+*.jks
+*.keystore
+key.properties
+
+# Room schema exports are build artifacts of record — keep them.
+!app/schemas/
+
+# Downloaded models (hundreds of MB, fetched at runtime)
+*.onnx
+*.onnx.data
+*.ort
+*.wav
+*.msi
+*.zip
+*.tar.bz2
+
+# Submission docs excluded per project owner
+Docs/
+README.md
+
+# Local diagnostics & staged model artifacts (machine-only)
+tools/
+.toolchain-tmp/
+
+# Python
+__pycache__/

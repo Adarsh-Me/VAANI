@@ -1,0 +1,429 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "3a33c8c77139c3351b6a9cf641254c02",
+    "entities": [
+      {
+        "tableName": "messages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `utteranceId` TEXT NOT NULL, `originalText` TEXT NOT NULL, `translatedText` TEXT, `translationFailed` INTEGER NOT NULL, `sourceLang` TEXT NOT NULL, `targetLang` TEXT NOT NULL, `languagePairId` TEXT, `emotionTag` INTEGER NOT NULL, `emotionConfidence` REAL NOT NULL, `prosodyBytes` BLOB, `direction` INTEGER NOT NULL, `deliveryStatus` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `audioPath` TEXT, `audioDurationMs` INTEGER, `wasPlayed` INTEGER NOT NULL, `isEmergency` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`languagePairId`) REFERENCES `language_pairs`(`pairId`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "utteranceId",
+            "columnName": "utteranceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalText",
+            "columnName": "originalText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "translatedText",
+            "columnName": "translatedText",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "translationFailed",
+            "columnName": "translationFailed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceLang",
+            "columnName": "sourceLang",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetLang",
+            "columnName": "targetLang",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "languagePairId",
+            "columnName": "languagePairId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "emotionTag",
+            "columnName": "emotionTag",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emotionConfidence",
+            "columnName": "emotionConfidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prosodyBytes",
+            "columnName": "prosodyBytes",
+            "affinity": "BLOB",
+            "notNull": false
+          },
+          {
+            "fieldPath": "direction",
+            "columnName": "direction",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deliveryStatus",
+            "columnName": "deliveryStatus",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "audioPath",
+            "columnName": "audioPath",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "audioDurationMs",
+            "columnName": "audioDurationMs",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "wasPlayed",
+            "columnName": "wasPlayed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isEmergency",
+            "columnName": "isEmergency",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_messages_utteranceId",
+            "unique": true,
+            "columnNames": [
+              "utteranceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_messages_utteranceId` ON `${TABLE_NAME}` (`utteranceId`)"
+          },
+          {
+            "name": "index_messages_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_messages_direction",
+            "unique": false,
+            "columnNames": [
+              "direction"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_direction` ON `${TABLE_NAME}` (`direction`)"
+          },
+          {
+            "name": "index_messages_isEmergency",
+            "unique": false,
+            "columnNames": [
+              "isEmergency"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_isEmergency` ON `${TABLE_NAME}` (`isEmergency`)"
+          },
+          {
+            "name": "index_messages_languagePairId",
+            "unique": false,
+            "columnNames": [
+              "languagePairId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_languagePairId` ON `${TABLE_NAME}` (`languagePairId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "language_pairs",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "languagePairId"
+            ],
+            "referencedColumns": [
+              "pairId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "language_pairs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pairId` TEXT NOT NULL, `sourceLang` TEXT NOT NULL, `targetLang` TEXT NOT NULL, `usageCount` INTEGER NOT NULL, `lastUsed` INTEGER NOT NULL, PRIMARY KEY(`pairId`))",
+        "fields": [
+          {
+            "fieldPath": "pairId",
+            "columnName": "pairId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceLang",
+            "columnName": "sourceLang",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetLang",
+            "columnName": "targetLang",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usageCount",
+            "columnName": "usageCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUsed",
+            "columnName": "lastUsed",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "pairId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_language_pairs_sourceLang_targetLang",
+            "unique": true,
+            "columnNames": [
+              "sourceLang",
+              "targetLang"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_language_pairs_sourceLang_targetLang` ON `${TABLE_NAME}` (`sourceLang`, `targetLang`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "model_registry",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`modelId` TEXT NOT NULL, `modelType` TEXT NOT NULL, `filePath` TEXT NOT NULL, `version` TEXT NOT NULL, `fileSizeBytes` INTEGER NOT NULL, `sha256` TEXT NOT NULL, `downloadedAt` INTEGER NOT NULL, `lastVerified` INTEGER NOT NULL, `isActive` INTEGER NOT NULL, `languages` TEXT, PRIMARY KEY(`modelId`))",
+        "fields": [
+          {
+            "fieldPath": "modelId",
+            "columnName": "modelId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelType",
+            "columnName": "modelType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "filePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileSizeBytes",
+            "columnName": "fileSizeBytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "downloadedAt",
+            "columnName": "downloadedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastVerified",
+            "columnName": "lastVerified",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "isActive",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "languages",
+            "columnName": "languages",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "modelId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "devices",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`deviceId` TEXT NOT NULL, `deviceName` TEXT NOT NULL, `lastConnected` INTEGER NOT NULL, `connectionCount` INTEGER NOT NULL, `isTrusted` INTEGER NOT NULL, `lastSignalStrength` INTEGER, `preferredTargetLang` TEXT, PRIMARY KEY(`deviceId`))",
+        "fields": [
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceName",
+            "columnName": "deviceName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastConnected",
+            "columnName": "lastConnected",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionCount",
+            "columnName": "connectionCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isTrusted",
+            "columnName": "isTrusted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSignalStrength",
+            "columnName": "lastSignalStrength",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "preferredTargetLang",
+            "columnName": "preferredTargetLang",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "deviceId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "metrics",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `metricType` TEXT NOT NULL, `value` REAL NOT NULL, `language` TEXT, `deviceModel` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metricType",
+            "columnName": "metricType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "language",
+            "columnName": "language",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "deviceModel",
+            "columnName": "deviceModel",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3a33c8c77139c3351b6a9cf641254c02')"
+    ]
+  }
+}
