@@ -19,7 +19,7 @@ import com.itantra.data.ITantraDatabase
 import com.itantra.data.LanguagePairEntity
 import com.itantra.data.toDomain
 import com.itantra.data.toEntity
-import com.itantra.ml.ASRManager
+import com.itantra.ml.SavaaniEngine
 import com.itantra.ml.EmotionManager
 import com.itantra.ml.TTSManager
 import com.itantra.ml.TranslationManager
@@ -72,7 +72,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val capture = AudioCaptureEngine(ctx)
     private val vad = VADManager(ctx)
-    private val asr = ASRManager(ctx)
+    private val asr = SavaaniEngine(ctx)
     private val translator = TranslationManager(ctx)
     private val tts = TTSManager(ctx)
     private val emotion = EmotionManager(ctx)

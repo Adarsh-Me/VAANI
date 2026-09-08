@@ -11,6 +11,51 @@ import kotlin.math.abs
 class PipelineUnitTest {
 
     @Test
+    fun savaani_tdtDecode_skipsBlankAndUsesDurationJumps() {
+        // Synthetic logits: frame0 -> blank + dur 2 (jump to frame2),
+        // frame1 skipped, frame2 -> token 7 + dur 1. Deterministic single pass.
+        val logits = FloatArray(3 * SavaaniDecoder.LOGIT_STRIDE)
+        setTok2(logits, 0, SavaaniDecoder.BLANK_ID); setDur2(logits, 0, 2)
+        setTok2(logits, 1, 42); setDur2(logits, 1, 1) // skipped by jump
+        setTok2(logits, 2, 7); setDur2(logits, 2, 1)
+
+        val emitted = mutableListOf<Int>()
+        SavaaniDecoder.decodeFrames(logits, 3) { tok, _ -> emitted.add(tok) }
+        assertEquals(listOf(7), emitted)
+    }
+
+    @Test
+    fun savaani_tdtDecode_emitsTokenThenBlankJump() {
+        // frame0 -> token 42 + dur 2 (advance past frame1), frame2 -> EOS-ish blank
+        val logits = FloatArray(3 * SavaaniDecoder.LOGIT_STRIDE)
+        setTok2(logits, 0, 42); setDur2(logits, 0, 2)
+        setTok2(logits, 1, 99); setDur2(logits, 1, 1) // must be skipped
+        setTok2(logits, 2, SavaaniDecoder.BLANK_ID); setDur2(logits, 2, 1)
+
+        val emitted = mutableListOf<Int>()
+        SavaaniDecoder.decodeFrames(logits, 3) { tok, _ -> emitted.add(tok) }
+        assertEquals(listOf(42), emitted)
+    }
+
+    private fun setTok2(logits: FloatArray, frame: Int, tok: Int) {
+        val stride = SavaaniDecoder.LOGIT_STRIDE
+        for (i in 0..SavaaniDecoder.VOCAB_SIZE) logits[frame * stride + i] = if (i == tok) 9f else 0f
+    }
+
+    private fun setDur2(logits: FloatArray, frame: Int, d: Int) {
+        val stride = SavaaniDecoder.LOGIT_STRIDE
+        for (i in 0 until SavaaniDecoder.DUR_HEADS)
+            logits[frame * stride + SavaaniDecoder.VOCAB_SIZE + 1 + i] = if (i == d) 8f else 0f
+    }
+
+    @Test
+    fun savaani_toText_joinsPiecesAndSpace() {
+        val vocab = List(3) { "" } + listOf("▁नमस्ते") // id 3
+        val text = SavaaniDecoder.toText(listOf(3), vocab)
+        assertEquals("नमस्ते", text)
+    }
+
+    @Test
     fun prosody_bytesRoundTrip() {
         val p = ProsodyData(0.2f, 0.7f, 0.5f, 0.9f, 0.05f)
         val back = ProsodyData.fromBytes(p.toBytes())

@@ -49,6 +49,35 @@
       "sizeBytes": 67605
     },
     {
+      "id": "savaani-enc",
+      "type": "asr",
+      "url": "",
+      "relPath": "models/savaani/encoder_int8.onnx",
+      "sizeBytes": 454300000,
+      "_note": "SraVaani-1.0 FastConformer TDT (ARTPARK-IISc, MIT, 105 langs, ONE model). ONNX int8 exported host-side. Host the 3 files (encoder_int8/predict/joint) on any URL and fill url fields to enable."
+    },
+    {
+      "id": "savaani-pred",
+      "type": "asr",
+      "url": "",
+      "relPath": "models/savaani/predict.onnx",
+      "sizeBytes": 24700000
+    },
+    {
+      "id": "savaani-joint",
+      "type": "asr",
+      "url": "",
+      "relPath": "models/savaani/joint.onnx",
+      "sizeBytes": 16300000
+    },
+    {
+      "id": "savaani-tok",
+      "type": "asr",
+      "url": "",
+      "relPath": "models/savaani/tokens.txt",
+      "sizeBytes": 80000
+    },
+    {
       "id": "mt",
       "type": "mt",
       "url": "https://huggingface.co/hari31416/indictrans2-indic-indic-dist-320M-ONNX-int8/resolve/main/encoder_model.onnx",

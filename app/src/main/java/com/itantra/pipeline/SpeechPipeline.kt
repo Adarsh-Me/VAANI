@@ -7,7 +7,7 @@ import com.itantra.models.Emotion
 import com.itantra.models.MessageDirection
 import com.itantra.models.ProcessingResult
 import com.itantra.models.ReceiveResult
-import com.itantra.ml.ASRManager
+import com.itantra.ml.SavaaniEngine
 import com.itantra.ml.EmotionManager
 import com.itantra.ml.ProsodyExtractor
 import com.itantra.ml.TTSManager
@@ -26,7 +26,7 @@ import java.util.UUID
  * Receive pipeline: packet -> translate? -> synthesize -> play | alert.
  */
 class SpeechPipeline(
-    private val asr: ASRManager,
+    private val asr: SavaaniEngine,
     private val translator: TranslationManager,
     private val tts: TTSManager,
     private val emotion: EmotionManager,
