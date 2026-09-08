@@ -472,7 +472,7 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
     val status by vm.modelStatus.collectAsState()
     val downloads by vm.modelDownloader.states.collectAsState()
     AppShell(current = "models", vm = vm, onNavigate = onNavigate) {
-        ScreenTitle("On-device AI Â· offline after download", "Models")
+        ScreenTitle("On-device AI · offline after download", "Models")
         val readyCount = status.count { it.value }
         ITCard(padding = 16) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -480,56 +480,88 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                 Spacer(Modifier.size(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Voice pipeline status", style = MaterialTheme.typography.titleSmall)
-                    Hint("Text + system voices live Â· neural voice partial")
+                    Hint("Text + system voices live · neural voice partial")
                 }
                 Spacer(Modifier.size(8.dp))
                 TagChip("$readyCount/${status.size.coerceAtLeast(1)} READY")
             }
         }
-        val glyphByType = mapOf(
-            "vad" to "â—‰", "asr" to "âœŽ", "mt" to "â‡„", "emotion" to "â—", "tts" to "â™ª"
-        )
         val ctx = LocalContext.current
         val catalog = remember(ctx) { com.itantra.utils.ModelCatalog.load(ctx) }
-        for (spec in catalog) {
-            // TTS/MMS voices are per-language (system fallback is always on),
-            // other model types share one readiness flag by type.
-            val live = status[if (spec.type == "tts" || spec.type == "mms") spec.id else spec.type] == true
-            val dl = downloads[spec.id]
+
+        // Compact: 3 pipeline cards (STT / MT / TTS), each collapsible to hide
+        // its per-language model files. Tap to expand.
+        val liveOf: (com.itantra.utils.ModelSpec) -> Boolean = { spec ->
+            status[if (spec.type == "tts" || spec.type == "mms") spec.id else spec.type] == true
+        }
+        val sttSpecs = catalog.filter { it.type == "asr" }
+        val mtSpecs = catalog.filter { it.type == "mt" }
+        val ttsSpecs = catalog.filter { it.type == "tts" || it.type == "mms" }
+        var expanded by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+
+        val cards = listOf(
+            Triple("stt", "Speech Recognition · SraVaani TDT", "✎") to sttSpecs,
+            Triple("mt", "Translation · IndicTrans2", "⇄") to mtSpecs,
+            Triple("tts", "Voices · Hear2Read + system", "♪") to ttsSpecs
+        )
+        for ((head, specs) in cards) {
+            val (id, title, glyph) = head
+            val anyLive = specs.any { liveOf(it) }
+            val isExpanded = expanded == id
             ITCard(padding = 16) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = if (isExpanded) null else id }
+                ) {
                     Box(
                         Modifier
                             .itIconButton()
                             .size(40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(glyphByType[spec.type] ?: "â—‰", style = ITText.kv.copy(color = IT.Ink))
+                        Text(glyph, style = ITText.kv.copy(color = IT.Ink))
                     }
                     Spacer(Modifier.size(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(modelLabel(spec), style = MaterialTheme.typography.labelLarge)
-                        KvText(
-                            spec.type.uppercase() + " Â· " +
-                                (if (spec.sizeBytes > 0) formatBytes(spec.sizeBytes) else unconfiguredLabel(spec.type)) +
-                                " Â· " + if (live) "verified" else "one-time download"
-                        )
+                        Text(title, style = MaterialTheme.typography.labelLarge)
+                        KvText(if (anyLive) "✓ ready" else "download required")
                     }
                     Spacer(Modifier.size(8.dp))
-                    when {
-                        live -> TagChip("âœ“ ACTIVE")
-                        dl?.status?.name == "RUNNING" ->
-                            KvText("${((dl?.fraction ?: 0f) * 100).toInt()}%")
-                        dl?.status?.name == "FAILED" -> ITMini("Retry") { vm.downloadModel(spec.id) }
-                        spec.url.isBlank() -> TagChip(unconfiguredLabel(spec.type))
-                        else -> ITMini("Get") { vm.downloadModel(spec.id) }
-                    }
+                    Text(if (isExpanded) "▾" else "▸", style = ITText.kv.copy(color = IT.Ink))
                 }
-                if (dl?.status?.name == "RUNNING") {
-                    Spacer(Modifier.height(10.dp))
-                    ITProgress(dl?.fraction ?: 0f)
-                    Spacer(Modifier.height(6.dp))
-                    KvText("${((dl?.fraction ?: 0f) * 100).toInt()}% Â· resumes if app closes")
+                if (isExpanded) {
+                    Spacer(Modifier.height(8.dp))
+                    for (spec in specs) {
+                        val live = liveOf(spec)
+                        val dl = downloads[spec.id]
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(modelLabel(spec), style = MaterialTheme.typography.labelMedium)
+                                KvText(
+                                    spec.type.uppercase() + " · " +
+                                        (if (spec.sizeBytes > 0) formatBytes(spec.sizeBytes) else unconfiguredLabel(spec.type))
+                                )
+                            }
+                            Spacer(Modifier.size(8.dp))
+                            when {
+                                live -> TagChip("✓ ACTIVE")
+                                dl?.status?.name == "RUNNING" ->
+                                    KvText("${((dl?.fraction ?: 0f) * 100).toInt()}%")
+                                dl?.status?.name == "FAILED" -> ITMini("Retry") { vm.downloadModel(spec.id) }
+                                spec.url.isBlank() -> TagChip(unconfiguredLabel(spec.type))
+                                else -> ITMini("Get") { vm.downloadModel(spec.id) }
+                            }
+                        }
+                        if (dl?.status?.name == "RUNNING") {
+                            ITProgress(dl?.fraction ?: 0f)
+                            Spacer(Modifier.height(4.dp))
+                        }
+                    }
                 }
             }
         }
