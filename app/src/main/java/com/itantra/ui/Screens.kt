@@ -471,6 +471,7 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
 fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
     val status by vm.modelStatus.collectAsState()
     val downloads by vm.modelDownloader.states.collectAsState()
+    val settings by vm.settings.collectAsState()
     AppShell(current = "models", vm = vm, onNavigate = onNavigate) {
         ScreenTitle("On-device AI · offline after download", "Models")
         val readyCount = status.count { it.value }
@@ -489,83 +490,126 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
         val ctx = LocalContext.current
         val catalog = remember(ctx) { com.itantra.utils.ModelCatalog.load(ctx) }
 
-        // Compact: 3 pipeline cards (STT / MT / TTS), each collapsible to hide
-        // its per-language model files. Tap to expand.
         val liveOf: (com.itantra.utils.ModelSpec) -> Boolean = { spec ->
             status[if (spec.type == "tts" || spec.type == "mms") spec.id else spec.type] == true
         }
         val sttSpecs = catalog.filter { it.type == "asr" }
         val mtSpecs = catalog.filter { it.type == "mt" }
-        val ttsSpecs = catalog.filter { it.type == "tts" || it.type == "mms" }
+
+        // 11 major regional languages supported end-to-end.
+        // SraVaani STT = 1 shared model (105 langs). IndicTrans2 MT = 1 shared
+        // model (462 pairs). TTS = Hear2Read app voice per language.
+        val eleven = listOf(
+            Triple("hi", "हिंदी (Hindi)", ">>hin<<"),
+            Triple("bn", "বাংলা (Bengali)", ">>ben<<"),
+            Triple("ta", "தமிழ் (Tamil)", ">>tam<<"),
+            Triple("te", "తెలుగు (Telugu)", ">>tel<<"),
+            Triple("mr", "मराठी (Marathi)", ">>mar<<"),
+            Triple("gu", "ગુજરાતી (Gujarati)", ">>guj<<"),
+            Triple("kn", "ಕನ್ನಡ (Kannada)", ">>kan<<"),
+            Triple("ml", "മലയാളം (Malayalam)", ">>mal<<"),
+            Triple("pa", "ਪੰਜਾਬੀ (Punjabi)", ">>pan_Guru<<"),
+            Triple("or", "ଓଡ଼ିଆ (Odia)", ">>ori<<"),
+            Triple("ur", "اردو (Urdu)", ">>urd<<")
+        )
         var expanded by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
 
-        val cards = listOf(
-            Triple("stt", "Speech Recognition · SraVaani TDT", "✎") to sttSpecs,
-            Triple("mt", "Translation · IndicTrans2", "⇄") to mtSpecs,
-            Triple("tts", "Voices · Hear2Read + system", "♪") to ttsSpecs
-        )
-        for ((head, specs) in cards) {
-            val (id, title, glyph) = head
-            val anyLive = specs.any { liveOf(it) }
-            val isExpanded = expanded == id
-            ITCard(padding = 16) {
+        ITCard(padding = 16) {
+            Eyebrow("Languages · 11 regional Indian")
+            Spacer(Modifier.height(6.dp))
+            Hint("Tap a language to expand its models. SraVaani (STT) and " +
+                "IndicTrans2 (MT) are shared — one download covers all 11.")
+            Spacer(Modifier.height(8.dp))
+            for ((code, name, _) in eleven) {
+                val isExp = expanded == code
+                val isSrc = settings.sourceLanguage == code
+                val isTgt = settings.targetLanguage == code
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { expanded = if (isExpanded) null else id }
+                        .clickable { expanded = if (isExp) null else code }
+                        .padding(vertical = 4.dp)
                 ) {
-                    Box(
-                        Modifier
-                            .itIconButton()
-                            .size(40.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(glyph, style = ITText.kv.copy(color = IT.Ink))
-                    }
-                    Spacer(Modifier.size(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(title, style = MaterialTheme.typography.labelLarge)
-                        KvText(if (anyLive) "✓ ready" else "download required")
+                        Text(name, style = MaterialTheme.typography.labelLarge)
+                        KvText(
+                            buildString {
+                                append("STT ✓ · MT ✓ · TTS ")
+                                append(if (isExp) (if (isSrc) "→ source" else if (isTgt) "→ target" else "") else "")
+                            }
+                        )
                     }
-                    Spacer(Modifier.size(8.dp))
-                    Text(if (isExpanded) "▾" else "▸", style = ITText.kv.copy(color = IT.Ink))
+                    if (isSrc) TagChip("SRC")
+                    if (isTgt) TagChip("TGT")
+                    Spacer(Modifier.size(6.dp))
+                    Text(if (isExp) "▾" else "▸", style = ITText.kv.copy(color = IT.Ink))
                 }
-                if (isExpanded) {
-                    Spacer(Modifier.height(8.dp))
-                    for (spec in specs) {
-                        val live = liveOf(spec)
-                        val dl = downloads[spec.id]
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                        ) {
+                if (isExp) {
+                    // Per-language model files
+                    Column(Modifier.padding(start = 12.dp)) {
+                        // STT: SraVaani shared files
+                        for (spec in sttSpecs) {
+                            val live = liveOf(spec)
+                            val dl = downloads[spec.id]
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("STT · " + modelLabel(spec), style = MaterialTheme.typography.labelMedium)
+                                    KvText(if (spec.sizeBytes > 0) formatBytes(spec.sizeBytes) else "manual")
+                                }
+                                when {
+                                    live -> TagChip("✓")
+                                    dl?.status?.name == "RUNNING" -> KvText("${((dl?.fraction ?: 0f) * 100).toInt()}%")
+                                    dl?.status?.name == "FAILED" -> ITMini("Retry") { vm.downloadModel(spec.id) }
+                                    spec.url.isBlank() -> TagChip("HOST TBD")
+                                    else -> ITMini("Get") { vm.downloadModel(spec.id) }
+                                }
+                            }
+                        }
+                        // MT: shared files
+                        for (spec in mtSpecs) {
+                            val live = liveOf(spec)
+                            val dl = downloads[spec.id]
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("MT · " + modelLabel(spec), style = MaterialTheme.typography.labelMedium)
+                                    KvText(if (spec.sizeBytes > 0) formatBytes(spec.sizeBytes) else "manual")
+                                }
+                                when {
+                                    live -> TagChip("✓")
+                                    dl?.status?.name == "RUNNING" -> KvText("${((dl?.fraction ?: 0f) * 100).toInt()}%")
+                                    dl?.status?.name == "FAILED" -> ITMini("Retry") { vm.downloadModel(spec.id) }
+                                    spec.url.isBlank() -> TagChip("HOST TBD")
+                                    else -> ITMini("Get") { vm.downloadModel(spec.id) }
+                                }
+                            }
+                        }
+                        // TTS: Hear2Read hint
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
                             Column(Modifier.weight(1f)) {
-                                Text(modelLabel(spec), style = MaterialTheme.typography.labelMedium)
-                                KvText(
-                                    spec.type.uppercase() + " · " +
-                                        (if (spec.sizeBytes > 0) formatBytes(spec.sizeBytes) else unconfiguredLabel(spec.type))
-                                )
+                                Text("TTS · Hear2Read voice", style = MaterialTheme.typography.labelMedium)
+                                KvText("Install Hear2Read NG from Play Store")
                             }
-                            Spacer(Modifier.size(8.dp))
-                            when {
-                                live -> TagChip("✓ ACTIVE")
-                                dl?.status?.name == "RUNNING" ->
-                                    KvText("${((dl?.fraction ?: 0f) * 100).toInt()}%")
-                                dl?.status?.name == "FAILED" -> ITMini("Retry") { vm.downloadModel(spec.id) }
-                                spec.url.isBlank() -> TagChip(unconfiguredLabel(spec.type))
-                                else -> ITMini("Get") { vm.downloadModel(spec.id) }
+                            TagChip("APP")
+                        }
+                        // Use buttons
+                        Spacer(Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ITMini("Set as source", Modifier.weight(1f)) {
+                                vm.updateSettings(settings.copy(sourceLanguage = code))
+                                expanded = null
+                            }
+                            ITMini("Set as target", Modifier.weight(1f)) {
+                                vm.updateSettings(settings.copy(targetLanguage = code))
+                                expanded = null
                             }
                         }
-                        if (dl?.status?.name == "RUNNING") {
-                            ITProgress(dl?.fraction ?: 0f)
-                            Spacer(Modifier.height(4.dp))
-                        }
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
             }
         }
-        // Storage card: verified model bytes vs the ~512 MB budget.
+        // Storage card
         val usedBytes = catalog.sumOf { spec ->
             val key = if (spec.type == "tts" || spec.type == "mms") spec.id else spec.type
             if (status[key] == true) spec.sizeBytes else 0L
@@ -578,12 +622,11 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
             Spacer(Modifier.height(8.dp))
             ITProgress((usedBytes / (512.0 * 1000 * 1000)).toFloat().coerceIn(0f, 1f))
             Spacer(Modifier.height(6.dp))
-            Hint("Voices are per-language; ASR/MT are shared across all pairs.")
+            Hint("SraVaani + IndicTrans2 shared · Hear2Read voices via app.")
         }
         ITSecondaryButton("Check for updates", Modifier.fillMaxWidth()) {
             catalog.forEach { spec ->
-                val key = if (spec.type == "tts" || spec.type == "mms") spec.id else spec.type
-                if (status[key] != true && spec.url.isNotBlank()) vm.downloadModel(spec.id)
+                if (status[spec.type] != true && spec.url.isNotBlank()) vm.downloadModel(spec.id)
             }
         }
     }
