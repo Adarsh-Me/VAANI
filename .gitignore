@@ -45,3 +45,5 @@ lat.xml
 
 # HF token (SraVaani gated access)
 .hf_token
+
+MODEL_STACK.md
