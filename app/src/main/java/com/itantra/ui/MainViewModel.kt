@@ -153,15 +153,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             withContext(Dispatchers.Main) {
                 // TTS is per-language: ready only when that voice bundle is
                 // installed (system fallback always exists, so it never
-                // marks tts-* ready on its own).
+                // marks tts-* ready on its own). MMS voices roll up into the
+                // tts-<lang> key: hi -> piper bundle, ta/pa -> MMS pairs.
                 val catalog = com.itantra.utils.ModelCatalog.load(ctx)
+                fun mmsReady(lang: String): Boolean {
+                    val m = catalog.first { it.id == "mms-$lang" }
+                    val t = catalog.first { it.id == "mms-$lang-tok" }
+                    return modelDownloader.isPresent(m) && modelDownloader.isPresent(t) &&
+                        tts.isMmsReady(lang)
+                }
                 _modelStatus.value = mapOf(
                     "vad" to vadOk, "asr" to asrOk, "mt" to mtOk,
                     "emotion" to emoOk,
-                    "tts-hi" to modelDownloader.isPresent(catalog.first { it.id == "tts-hi" }),
-                    "tts-ta" to modelDownloader.isPresent(catalog.first { it.id == "tts-ta" }),
-                    "tts-pa" to modelDownloader.isPresent(catalog.first { it.id == "tts-pa" })
-                )
+                    "tts-hi" to (modelDownloader.isPresent(catalog.first { it.id == "tts-hi" }) || mmsReady("hi")),
+                    "tts-ta" to mmsReady("ta"),
+                    "tts-pa" to mmsReady("pa")
+                ) + catalog.filter { it.type == "mms" }
+                    .associate { it.id to modelDownloader.isPresent(it) }
             }
             startTransport(s.transportType)
             withContext(Dispatchers.Main) {

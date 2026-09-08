@@ -1,4 +1,4 @@
-package com.itantra.ui
+﻿package com.itantra.ui
 
 import android.content.Context
 import android.media.AudioManager
@@ -50,14 +50,14 @@ import com.itantra.models.TransportType
 import com.itantra.utils.ModelCatalog
 import kotlin.math.roundToInt
 
-/** Prototype .iconbtn — 44dp bordered square, surface bg, soft shadow. */
+/** Prototype .iconbtn â€” 44dp bordered square, surface bg, soft shadow. */
 fun Modifier.itIconButton(): Modifier = this
     .shadow(2.dp, RoundedCornerShape(12.dp), ambientColor = IT.Shadow, spotColor = IT.Shadow)
     .clip(RoundedCornerShape(12.dp))
     .background(IT.Surface)
     .border(1.dp, IT.Border, RoundedCornerShape(12.dp))
 
-/** Prototype .topbar — pair eyebrow, wordmark, status pill, settings iconbtn. */
+/** Prototype .topbar â€” pair eyebrow, wordmark, status pill, settings iconbtn. */
 @Composable
 fun AppTopBar(
     pairLabel: String,
@@ -108,14 +108,14 @@ fun AppShell(
     val settings by vm.settings.collectAsState()
     val conn by vm.connection.collectAsState()
     val ble = settings.transportType == TransportType.BLE
-    val pairLabel = settings.sourceLanguage.uppercase() + " → " +
-        settings.targetLanguage.uppercase() + " · " + if (ble) "BLE" else "Loopback"
-    // Loopback rehearses as CONNECTED — only call it BLE live on the real transport.
+    val pairLabel = settings.sourceLanguage.uppercase() + " â†’ " +
+        settings.targetLanguage.uppercase() + " Â· " + if (ble) "BLE" else "Loopback"
+    // Loopback rehearses as CONNECTED â€” only call it BLE live on the real transport.
     val linkLabel = when {
         !ble -> "Ready"
         conn == com.itantra.models.ConnectionState.CONNECTED -> "Connected"
         conn == com.itantra.models.ConnectionState.DISCONNECTED -> "Ready"
-        else -> "Linking…"
+        else -> "Linkingâ€¦"
     }
     Column(Modifier.fillMaxSize().background(IT.Bg)) {
         AppTopBar(
@@ -144,7 +144,7 @@ fun AppShell(
     }
 }
 
-/** Short native-only chip label, e.g. "हिंदी" from "हिंदी (Hindi)". */
+/** Short native-only chip label, e.g. "à¤¹à¤¿à¤‚à¤¦à¥€" from "à¤¹à¤¿à¤‚à¤¦à¥€ (Hindi)". */
 private fun nativeName(code: String): String =
     Languages.displayName(code).substringBefore(" (").trim()
 
@@ -158,7 +158,7 @@ fun SettingsScreen(
     val tabs = listOf("Languages", "Audio", "Link", "AI models", "Emergency", "About")
     AppShell(current = "settings", vm = vm, onNavigate = onNavigate) {
         ScreenTitle("Settings", "Tune iTantra")
-        // Prototype .od-rail — horizontal chip tablist.
+        // Prototype .od-rail â€” horizontal chip tablist.
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
@@ -201,15 +201,15 @@ fun SettingsScreen(
                     Spacer(Modifier.height(8.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Punjabi (ਪੰਜਾਬੀ)", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                            Text("Punjabi (à¨ªà©°à¨œà¨¾à¨¬à©€)", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                             ITMini("Download") { vm.downloadModel("tts-pa") }
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Telugu (తెలుగు)", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                            Text("Telugu (à°¤à±†à°²à±à°—à±)", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                             TagChip("ROADMAP")
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Marathi (मराठी)", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                            Text("Marathi (à¤®à¤°à¤¾à¤ à¥€)", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                             TagChip("ROADMAP")
                         }
                     }
@@ -231,7 +231,7 @@ fun SettingsScreen(
                         ) { vm.setAutoMode(it) }
                         Column {
                             Text(
-                                "Mic sensitivity · " + "%.2f".format(settings.vadThreshold),
+                                "Mic sensitivity Â· " + "%.2f".format(settings.vadThreshold),
                                 style = MaterialTheme.typography.labelLarge
                             )
                             Slider(
@@ -287,7 +287,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        KvText("MTU 517 · TX notify on · mesh relay roadmap (+150 ms/hop).")
+                        KvText("MTU 517 Â· TX notify on Â· mesh relay roadmap (+150 ms/hop).")
                         ITSecondaryButton("Open connection screen", Modifier.fillMaxWidth()) {
                             onNavigate("connection")
                         }
@@ -304,7 +304,7 @@ fun SettingsScreen(
                         ) { vm.updateSettings(settings.copy(emergencyMaxVolume = it)) }
                         ToggleRow(
                             "Vibration",
-                            "500 · 200 · 500 pattern",
+                            "500 Â· 200 Â· 500 pattern",
                             settings.emergencyVibrationEnabled
                         ) { vm.updateSettings(settings.copy(emergencyVibrationEnabled = it)) }
                         ToggleRow(
@@ -328,12 +328,12 @@ fun SettingsScreen(
             }
             "About" -> {
                 ITCard {
-                    Text("iTantra 1.0-demo · SIH26173", style = MaterialTheme.typography.titleMedium)
+                    Text("iTantra 1.0-demo Â· SIH26173", style = MaterialTheme.typography.titleMedium)
                     Hint(
-                        "Cascade ASR → MT → TTS + 5-byte prosody side-channel. " +
+                        "Cascade ASR â†’ MT â†’ TTS + 5-byte prosody side-channel. " +
                             "Demo hi/ta/bn. Budgets: <2 s p50, ~412 MB with models."
                     )
-                    KvText("ISRO misc · software · offline walkie-talkie")
+                    KvText("ISRO misc Â· software Â· offline walkie-talkie")
                 }
             }
         }
@@ -373,7 +373,7 @@ fun HistoryScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
         Hint("Stored on-device (Room). Tap replay to hear again.")
         val list = if (onlyEmergency) messages.filter { it.isEmergency } else messages
         if (list.isEmpty()) {
-            Hint("No messages yet. Hold TALK or send text — every loop lands here.")
+            Hint("No messages yet. Hold TALK or send text â€” every loop lands here.")
         }
         // Prototype history is a plain stack of the same .msg bubbles.
         list.reversed().forEach { msg ->
@@ -393,7 +393,7 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
     val scanning = settings.transportType == TransportType.BLE && !connected
     AppShell(current = "connection", vm = vm, onNavigate = onNavigate) {
         ScreenTitle(
-            if (connected) "Connectivity · scanning complete" else "Connectivity",
+            if (connected) "Connectivity Â· scanning complete" else "Connectivity",
             "Two-phone link"
         )
         ITCard {
@@ -406,7 +406,7 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                         style = MaterialTheme.typography.titleSmall
                     )
                     Hint(
-                        if (connected) "Signal strong (−58 dBm) · MTU 517 · TX notify on · ready to communicate"
+                        if (connected) "Signal strong (âˆ’58 dBm) Â· MTU 517 Â· TX notify on Â· ready to communicate"
                         else "Single-phone rehearsal. Packets stay on this device."
                     )
                 }
@@ -415,8 +415,8 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
         ITCard {
             Text("How BLE works here", style = MaterialTheme.typography.titleSmall)
             Hint(
-                "Both phones → Bluetooth LE. 10–30 m apart. Only ~200 bytes of " +
-                    "text + prosody cross the air — never audio."
+                "Both phones â†’ Bluetooth LE. 10â€“30 m apart. Only ~200 bytes of " +
+                    "text + prosody cross the air â€” never audio."
             )
             Spacer(Modifier.height(10.dp))
             ITPrimaryButton("Advertise / scan (BLE)", Modifier.fillMaxWidth()) {
@@ -427,14 +427,14 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                 vm.setTransport(TransportType.LOOPBACK)
             }
         }
-        // Prototype hidden scanning card — shown while a BLE link is being established.
+        // Prototype hidden scanning card â€” shown while a BLE link is being established.
         if (scanning) {
             ITCard {
-                Eyebrow("Scanning…")
+                Eyebrow("Scanningâ€¦")
                 Spacer(Modifier.height(6.dp))
                 ITProgress(0.1f)
                 Spacer(Modifier.height(6.dp))
-                Hint("Looking for iTantra devices…")
+                Hint("Looking for iTantra devicesâ€¦")
             }
         }
         if (connected) {
@@ -443,7 +443,7 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 LangCard(
                     title = "iTantra peer",
-                    subtitle = "Strong · −58 dBm · iTantra peer",
+                    subtitle = "Strong Â· âˆ’58 dBm Â· iTantra peer",
                     selected = true,
                     onClick = {}
                 )
@@ -454,14 +454,14 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
             }
             ITCard {
                 Eyebrow("Reconnect policy")
-                Hint("Auto-retry 3× on link loss, then queue outgoing packets until reconnected.")
+                Hint("Auto-retry 3Ã— on link loss, then queue outgoing packets until reconnected.")
             }
         }
         ITCard {
             Eyebrow("Fallback")
             Hint(
-                "No peer? Stay on loopback — the full pipeline still rehearses. " +
-                    "Connection loss auto-retries 3×, then queues."
+                "No peer? Stay on loopback â€” the full pipeline still rehearses. " +
+                    "Connection loss auto-retries 3Ã—, then queues."
             )
         }
     }
@@ -472,7 +472,7 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
     val status by vm.modelStatus.collectAsState()
     val downloads by vm.modelDownloader.states.collectAsState()
     AppShell(current = "models", vm = vm, onNavigate = onNavigate) {
-        ScreenTitle("On-device AI · offline after download", "Models")
+        ScreenTitle("On-device AI Â· offline after download", "Models")
         val readyCount = status.count { it.value }
         ITCard(padding = 16) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -480,21 +480,21 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                 Spacer(Modifier.size(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Voice pipeline status", style = MaterialTheme.typography.titleSmall)
-                    Hint("Text + system voices live · neural voice partial")
+                    Hint("Text + system voices live Â· neural voice partial")
                 }
                 Spacer(Modifier.size(8.dp))
                 TagChip("$readyCount/${status.size.coerceAtLeast(1)} READY")
             }
         }
         val glyphByType = mapOf(
-            "vad" to "◉", "asr" to "✎", "mt" to "⇄", "emotion" to "◍", "tts" to "♪"
+            "vad" to "â—‰", "asr" to "âœŽ", "mt" to "â‡„", "emotion" to "â—", "tts" to "â™ª"
         )
         val ctx = LocalContext.current
         val catalog = remember(ctx) { com.itantra.utils.ModelCatalog.load(ctx) }
         for (spec in catalog) {
-            // TTS voices are per-language (system fallback is always on),
+            // TTS/MMS voices are per-language (system fallback is always on),
             // other model types share one readiness flag by type.
-            val live = status[if (spec.type == "tts") spec.id else spec.type] == true
+            val live = status[if (spec.type == "tts" || spec.type == "mms") spec.id else spec.type] == true
             val dl = downloads[spec.id]
             ITCard(padding = 16) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -504,20 +504,20 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                             .size(40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(glyphByType[spec.type] ?: "◉", style = ITText.kv.copy(color = IT.Ink))
+                        Text(glyphByType[spec.type] ?: "â—‰", style = ITText.kv.copy(color = IT.Ink))
                     }
                     Spacer(Modifier.size(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(modelLabel(spec), style = MaterialTheme.typography.labelLarge)
                         KvText(
-                            spec.type.uppercase() + " · " +
+                            spec.type.uppercase() + " Â· " +
                                 (if (spec.sizeBytes > 0) formatBytes(spec.sizeBytes) else unconfiguredLabel(spec.type)) +
-                                " · " + if (live) "verified" else "one-time download"
+                                " Â· " + if (live) "verified" else "one-time download"
                         )
                     }
                     Spacer(Modifier.size(8.dp))
                     when {
-                        live -> TagChip("✓ ACTIVE")
+                        live -> TagChip("âœ“ ACTIVE")
                         dl?.status?.name == "RUNNING" ->
                             KvText("${((dl?.fraction ?: 0f) * 100).toInt()}%")
                         dl?.status?.name == "FAILED" -> ITMini("Retry") { vm.downloadModel(spec.id) }
@@ -529,13 +529,13 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                     Spacer(Modifier.height(10.dp))
                     ITProgress(dl?.fraction ?: 0f)
                     Spacer(Modifier.height(6.dp))
-                    KvText("${((dl?.fraction ?: 0f) * 100).toInt()}% · resumes if app closes")
+                    KvText("${((dl?.fraction ?: 0f) * 100).toInt()}% Â· resumes if app closes")
                 }
             }
         }
         // Storage card: verified model bytes vs the ~512 MB budget.
         val usedBytes = catalog.sumOf { spec ->
-            val key = if (spec.type == "tts") spec.id else spec.type
+            val key = if (spec.type == "tts" || spec.type == "mms") spec.id else spec.type
             if (status[key] == true) spec.sizeBytes else 0L
         }
         ITCard {
@@ -550,7 +550,7 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
         }
         ITSecondaryButton("Check for updates", Modifier.fillMaxWidth()) {
             catalog.forEach { spec ->
-                val key = if (spec.type == "tts") spec.id else spec.type
+                val key = if (spec.type == "tts" || spec.type == "mms") spec.id else spec.type
                 if (status[key] != true && spec.url.isNotBlank()) vm.downloadModel(spec.id)
             }
         }
@@ -571,13 +571,13 @@ private fun modelLabel(spec: com.itantra.utils.ModelSpec): String = when (spec.i
     "vad" -> "Silero VAD 1.8 MB"
     "asr" -> "IndicConformer-600M INT8"
     "mt" -> "IndicTrans2-320M INT8"
-    "mt-dec" -> "IndicTrans2 MT · decoder"
+    "mt-dec" -> "IndicTrans2 MT Â· decoder"
     "emotion" -> "Emotion2Vec"
-    "tts-hi" -> "Hindi voice · piper medium"
-    "tts-ta" -> "Tamil voice · system fallback"
-    "tts-pa" -> "Punjabi voice · system fallback"
-    "mt-tok" -> "IndicTrans2 tokenizer · source"
-    "mt-tok-tgt" -> "IndicTrans2 tokenizer · target"
+    "tts-hi" -> "Hindi voice Â· piper medium"
+    "tts-ta" -> "Tamil voice Â· system fallback"
+    "tts-pa" -> "Punjabi voice Â· system fallback"
+    "mt-tok" -> "IndicTrans2 tokenizer Â· source"
+    "mt-tok-tgt" -> "IndicTrans2 tokenizer Â· target"
     else -> spec.id
 }
 
