@@ -1,20 +1,16 @@
 package com.itantra.ml
 
 import android.content.Context
+import android.content.Intent
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import com.itantra.models.AudioSpec
-import com.itantra.models.StorageLayout
 import com.itantra.models.SynthesisResult
 import com.itantra.models.TtsSettings
-import com.k2fsa.sherpa.onnx.OfflineTts
-import com.k2fsa.sherpa.onnx.OfflineTtsConfig
-import com.k2fsa.sherpa.onnx.OfflineTtsModelConfig
-import com.k2fsa.sherpa.onnx.OfflineTtsVitsModelConfig
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -23,154 +19,129 @@ import java.util.UUID
 import kotlin.coroutines.resume
 
 /**
- * Offline neural TTS via sherpa-onnx JNI (Piper/VITS voices downloaded into
- * filesDir/models/tts/<lang>/ by ModelDownloader). Falls back to Android
- * system TTS for languages without a downloaded voice (docs fallback L1).
- * Both paths render to FloatArray PCM; playback/emergency code is agnostic.
+ * TTS: Hear2Read Indic voices (flite) via engine binding + Android system TTS.
+ *
+ * Hear2Read ships real Indic-language G2P voices (hi/ta/pa/bn/...) as a free
+ * Android TTS engine app (org.hear2read.h2rng on Play Store). This manager:
+ *  1. discovers installed TTS engines and prefers any org.hear2read.* engine
+ *  2. falls back to the device default engine (Google TTS)
+ * Both render to PCM float @16 kHz so playback/emergency stay unchanged.
  */
 class TTSManager(private val context: Context, private val threads: Int = 2) {
 
     companion object {
         const val TAG = "TTSManager"
+        const val H2R_PREFIX = "org.hear2read"
     }
 
-    private var offlineTts: OfflineTts? = null
-    private var onnxLang: String? = null
-    private var onnxSampleRate: Int = AudioSpec.SAMPLE_RATE
-    private val mms = HashMap<String, MmsTtsEngine>()
-    private var systemTts: TextToSpeech? = null
-    private var systemReady = false
+    private var defaultTts: TextToSpeech? = null
+    private var defaultReady = false
+    private var h2rTts: TextToSpeech? = null
+    private var h2rReady = false
+    private var h2rEngine: String? = null
     private val systemLangs = mutableSetOf<String>()
 
-    val isOnnxLoaded: Boolean get() = offlineTts != null
-    /** MMS neural voice ready for [lang] (ta/pa). */
-    fun isMmsReady(lang: String): Boolean = mms[lang]?.isLoaded == true
-    val isReady: Boolean get() = isOnnxLoaded || mms.values.any { it.isLoaded } || systemReady
+    val isReady: Boolean get() = defaultReady || h2rReady
 
-    /** Loads sherpa-onnx voice for [lang] if present, else warms up system TTS. */
-    suspend fun initialize(lang: String): Boolean {
-        loadVoice(lang)
-        loadMms(lang)
-        ensureSystemTts()
-        if (systemReady) {
-            setSystemLang(lang)
+    /** Play Store package of the Hear2Read voices, if installed. */
+    fun hear2ReadEnginePackage(): String? {
+        if (h2rEngine != null) return h2rEngine
+        return try {
+            val pm = context.packageManager
+            val intent = Intent("android.intent.action.TTS_SERVICE")
+            h2rEngine = pm.queryIntentActivities(intent, 0)
+                .map { it.activityInfo.packageName }
+                .firstOrNull { it.startsWith(H2R_PREFIX) }
+            if (h2rEngine != null) {
+                Log.i(TAG, "Hear2Read engine discovered: $h2rEngine")
+            }
+            h2rEngine
+        } catch (e: Exception) {
+            null
         }
+    }
+
+    suspend fun initialize(lang: String): Boolean {
+        ensureDefaultTts()
+        ensureH2RTts()
+        if (defaultReady) setLang(lang)
         return isReady
     }
 
-    /** MMS-TTS neural voice for ta/pa (Meta MMS ONNX, CC-BY-NC-4.0). */
-    fun loadMms(lang: String): Boolean {
-        if (lang != "ta" && lang != "pa") return false
-        val eng = mms.getOrPut(lang) { MmsTtsEngine(context, threads) }
-        return eng.load(lang)
+    private suspend fun ensureDefaultTts() {
+        if (defaultTts != null) return
+        createTts(null, assign = { defaultTts = it }) { ok -> defaultReady = ok }
     }
 
-    /**
-     * Expects the extracted voice bundle under filesDir/models/tts/<lang>/:
-     * one .onnx model, tokens.txt, and the espeak-ng-data/ directory (all three
-     * required — a missing espeak-ng-data is the classic silent-init failure).
-     */
-    private fun loadVoice(lang: String) {
-        if (offlineTts != null && onnxLang == lang) return
-        runCatching { offlineTts?.release() }
-        offlineTts = null
-        onnxLang = null
-
-        val dir = ModelPaths(context).file(StorageLayout.ttsDir(lang))
-        val modelFile = dir.listFiles()?.firstOrNull { it.isFile && it.name.endsWith(".onnx") }
-        val tokens = File(dir, "tokens.txt")
-        val espeakData = File(dir, "espeak-ng-data")
-        if (modelFile == null || !tokens.exists() || !espeakData.isDirectory) {
-            Log.i(TAG, "No sherpa-onnx voice for $lang under ${dir.absolutePath} — Using SYSTEM TTS fallback")
-            return
+    /** Lazily binds to the Hear2Read engine when its app is installed. */
+    private suspend fun ensureH2RTts(): Boolean {
+        if (h2rReady) return true
+        val pkg = hear2ReadEnginePackage() ?: return false
+        if (h2rTts != null) return false // created, still initializing
+        createTts(pkg, assign = { h2rTts = it }) { ok ->
+            h2rReady = ok
+            Log.i(TAG, "Hear2Read engine $pkg ready=$ok")
         }
-        try {
-            val config = OfflineTtsConfig().apply {
-                model = OfflineTtsModelConfig().apply {
-                    vits = OfflineTtsVitsModelConfig(
-                        model = modelFile.absolutePath,
-                        tokens = tokens.absolutePath,
-                        dataDir = espeakData.absolutePath,
-                        // Prosody lengthScale maps to per-request speed at generate()
-                        // time; noise scales stay at VITS defaults (0.667 / 0.8).
-                        noiseScale = 0.667f,
-                        noiseScaleW = 0.8f,
-                        lengthScale = 1.0f,
-                    )
-                    numThreads = threads
-                    debug = false
-                    provider = "cpu"
-                }
-            }
-            val tts = OfflineTts(config = config)
-            offlineTts = tts
-            onnxLang = lang
-            onnxSampleRate = tts.sampleRate()
-            Log.i(TAG, "Loaded sherpa-onnx VITS voice for $lang (${modelFile.name}, sr=$onnxSampleRate)")
-        } catch (e: Throwable) {
-            // Includes UnsatisfiedLinkError when .so/ABI don't match the device.
-            Log.w(TAG, "sherpa-onnx init failed for $lang: $e — Using SYSTEM TTS fallback")
-            offlineTts = null
-            onnxLang = null
-        }
+        return h2rReady
     }
 
-    private suspend fun ensureSystemTts() {
-        if (systemTts != null) return
+    private suspend fun createTts(
+        enginePackage: String?,
+        assign: (TextToSpeech) -> Unit,
+        onReady: (Boolean) -> Unit
+    ) {
         suspendCancellableCoroutine { cont ->
             var resumed = false
             fun done(ok: Boolean) {
                 if (!resumed) {
                     resumed = true
-                    systemReady = ok
-                    cont.resume(ok)
+                    onReady(ok)
+                    if (cont.isActive) cont.resume(Unit)
                 }
             }
-            systemTts = TextToSpeech(context) { status ->
-                done(status == TextToSpeech.SUCCESS)
-            }
+            val listener = TextToSpeech.OnInitListener { status -> done(status == TextToSpeech.SUCCESS) }
+            val tts = if (enginePackage == null) TextToSpeech(context, listener)
+            else TextToSpeech(context, listener, enginePackage)
+            assign(tts)
+            tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(id: String?) {}
+                override fun onDone(id: String?) {}
+                override fun onError(id: String?, errorCode: Int) {}
+                @Deprecated("Deprecated in Java")
+                override fun onError(id: String?) {}
+            })
             cont.invokeOnCancellation { done(false) }
         }
-        systemTts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(id: String?) {}
-            override fun onDone(id: String?) {}
-            override fun onError(id: String?) {}
-        })
     }
 
-    fun setSystemLang(lang: String): Boolean {
-        val tts = systemTts ?: return false
-        val candidates = buildList {
-            when (lang) {
-                "hi" -> add(Locale("hi", "IN"))
-                "ta" -> add(Locale("ta", "IN"))
-                "bn" -> add(Locale("bn", "IN"))
-                else -> add(Locale(lang))
-            }
-            add(Locale(lang))
-            // Any installed voice whose language matches, regardless of region.
-            runCatching {
-                tts.availableLanguages?.forEach { l ->
-                    if (l.language == lang && !contains(l)) add(l)
-                }
-            }
+    fun setLang(lang: String): Boolean {
+        val locale = when (lang) {
+            "hi" -> Locale("hi", "IN")
+            "ta" -> Locale("ta", "IN")
+            "bn" -> Locale("bn", "IN")
+            "pa" -> Locale("pa", "IN")
+            else -> Locale(lang)
         }
-        return try {
-            for (locale in candidates) {
-                val avail = tts.isLanguageAvailable(locale)
+        var ok = false
+        // Prefer Hear2Read for Indic languages (real G2P), then default engine.
+        for (tts in listOf(h2rTts, defaultTts)) {
+            val t = tts ?: continue
+            val ready = if (tts === h2rTts) h2rReady else defaultReady
+            if (!ready) continue
+            ok = runCatching {
+                val avail = t.isLanguageAvailable(locale)
                 if (avail != TextToSpeech.LANG_MISSING_DATA &&
                     avail != TextToSpeech.LANG_NOT_SUPPORTED
                 ) {
-                    tts.language = locale
+                    t.language = locale
                     systemLangs.add(lang)
-                    return true
-                }
-            }
-            Log.w(TAG, "No system voice for $lang — keeping previous language")
-            false
-        } catch (e: Exception) {
-            false
+                    true
+                } else false
+            }.getOrDefault(false)
+            if (ok) return true
         }
+        Log.w(TAG, "No voice for $lang across engines")
+        return false
     }
 
     suspend fun synthesize(
@@ -180,94 +151,56 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
     ): SynthesisResult? {
         if (text.isBlank()) return null
         val t0 = System.currentTimeMillis()
-        // Lazy load: received messages can arrive in a language different from
-        // the one initialize() was called with — try neural voices for it.
-        if (onnxLang != lang) loadVoice(lang)
-        if (offlineTts != null && onnxLang == lang) {
-            onnxSynthesize(text, settings)?.let { return it }
-        }
-        if (!isMmsReady(lang)) loadMms(lang)
-        // MMS neural voice for ta/pa — logged per call so logcat proves the engine.
-        mms[lang]?.takeIf { it.isLoaded }?.let { eng ->
-            eng.synthesize(text, settings, t0)?.let {
-                Log.i(TAG, "TTS engine=mms-$lang ${it.audioData.size} samples")
-                return it
-            }
-            Log.w(TAG, "MMS synthesis failed for $lang, trying system voice")
-        }
-        return systemSynthesize(text, lang, settings, t0)
+        ensureH2RTts()
+        val engine = when {
+            h2rReady && systemLangs.contains(lang) -> h2rTts
+            defaultReady && systemLangs.contains(lang) -> defaultTts
+            h2rReady -> { setLang(lang); h2rTts }
+            else -> { setLang(lang); defaultTts }
+        } ?: return null
+        val engineName = if (engine === h2rTts) "hear2read" else "system"
+        return systemSynthesize(engine, engineName, text, settings, t0)
     }
 
-    /** Blocking VITS inference; runs off the main thread, PCM float @ model rate. */
-    private suspend fun onnxSynthesize(text: String, settings: TtsSettings): SynthesisResult? {
-        val tts = offlineTts ?: return null
-        return withContext(Dispatchers.Default) {
-            val t0 = System.currentTimeMillis()
-            try {
-                // speed = 1 / lengthScale (lengthScale > 1 means slower speech).
-                val speed = 1f / settings.lengthScale.coerceIn(0.4f, 2.5f)
-                val audio = tts.generate(text, sid = 0, speed = speed)
-                if (audio.samples.isEmpty()) {
-                    Log.w(TAG, "sherpa-onnx produced no audio")
-                    null
-                } else {
-                    SynthesisResult(
-                        audioData = audio.samples,
-                        sampleRate = audio.sampleRate,
-                        durationMs = audio.samples.size * 1000L / audio.sampleRate,
-                        inferenceTimeMs = System.currentTimeMillis() - t0,
-                        engine = "onnx"
-                    )
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "sherpa-onnx synthesis failed: $e")
-                null
-            }
-        }
-    }
-
-    private suspend fun systemSynthesize(text: String, lang: String, settings: TtsSettings, t0: Long): SynthesisResult? {
-        val tts = systemTts ?: return null
-        if (!systemReady) return null
-        setSystemLang(lang)
-        // Prosody -> speech-rate + pitch mapping (only path that can modulate pitch).
+    private suspend fun systemSynthesize(
+        tts: TextToSpeech,
+        engineName: String,
+        text: String,
+        settings: TtsSettings,
+        t0: Long
+    ): SynthesisResult? = withContext(Dispatchers.IO) {
+        // Prosody -> speech-rate + pitch mapping.
         runCatching { tts.setSpeechRate(1.0f / settings.lengthScale.coerceIn(0.4f, 2.5f)) }
         runCatching { tts.setPitch(settings.pitchScale.coerceIn(0.5f, 1.5f)) }
         val wav = File.createTempFile("tts_", ".wav", context.cacheDir)
-        return try {
+        try {
             val id = UUID.randomUUID().toString()
             suspendCancellableCoroutine { cont ->
-                var done = false
-                fun finish() {
-                    if (!done) {
-                        done = true
-                        cont.resume(true)
-                    }
-                }
                 val listener = object : UtteranceProgressListener() {
                     override fun onStart(u: String?) {}
-                    override fun onDone(u: String?) = finish()
-                    override fun onError(u: String?) = finish()
+                    override fun onDone(u: String?) = cont.resume(Unit)
+                    override fun onError(u: String?) = cont.resume(Unit)
                 }
                 tts.setOnUtteranceProgressListener(listener)
                 val rc = tts.synthesizeToFile(text, null, wav, id)
-                if (rc != TextToSpeech.SUCCESS) finish()
+                if (rc != TextToSpeech.SUCCESS) cont.resume(Unit)
             }
-            val pcm = readWavMono16k(wav) ?: return null
+            val pcm = readWavMono16k(wav) ?: return@withContext null
             SynthesisResult(
                 audioData = pcm,
                 durationMs = (pcm.size * 1000L / AudioSpec.SAMPLE_RATE),
                 inferenceTimeMs = System.currentTimeMillis() - t0,
-                engine = "system"
-            )
+                engine = engineName
+            ).also { Log.i(TAG, "TTS engine=$engineName ${pcm.size} samples") }
         } catch (e: Exception) {
+            Log.w(TAG, "synthesize failed: ${e.message}")
             null
         } finally {
             runCatching { wav.delete() }
         }
     }
 
-    /** Reads 16-bit PCM WAV (any rate -> naive resample to 16 kHz mono). */
+    /** Reads 16-bit PCM WAV (any rate -> resample to 16 kHz mono). */
     internal fun readWavMono16k(f: File): FloatArray? {
         return try {
             val bytes = f.readBytes()
@@ -278,7 +211,6 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
             buf.position(34)
             val bits = buf.short.toInt()
             if (bits != 16) return null
-            // Find "data" chunk.
             var dataStart = 44
             var i = 12
             while (i + 8 <= bytes.size) {
@@ -311,15 +243,16 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
     }
 
     fun stop() {
-        runCatching { systemTts?.stop() }
+        runCatching { defaultTts?.stop() }
+        runCatching { h2rTts?.stop() }
     }
 
     fun shutdown() {
-        runCatching { offlineTts?.release() }
-        offlineTts = null
-        onnxLang = null
-        runCatching { systemTts?.shutdown() }
-        systemTts = null
-        systemReady = false
+        runCatching { defaultTts?.shutdown() }
+        runCatching { h2rTts?.shutdown() }
+        defaultTts = null
+        h2rTts = null
+        defaultReady = false
+        h2rReady = false
     }
 }

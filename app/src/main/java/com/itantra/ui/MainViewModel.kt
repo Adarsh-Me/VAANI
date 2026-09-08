@@ -151,25 +151,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val (vadOk, asrOk, mtOk, emoOk, ttsOk) = listOf(vadD, asrD, mtD, emoD, ttsD)
                 .map { it.await() }
             withContext(Dispatchers.Main) {
-                // TTS is per-language: ready only when that voice bundle is
-                // installed (system fallback always exists, so it never
-                // marks tts-* ready on its own). MMS voices roll up into the
-                // tts-<lang> key: hi -> piper bundle, ta/pa -> MMS pairs.
-                val catalog = com.itantra.utils.ModelCatalog.load(ctx)
-                fun mmsReady(lang: String): Boolean {
-                    val m = catalog.first { it.id == "mms-$lang" }
-                    val t = catalog.first { it.id == "mms-$lang-tok" }
-                    return modelDownloader.isPresent(m) && modelDownloader.isPresent(t) &&
-                        tts.isMmsReady(lang)
-                }
+                // Hear2Read-flite / system TTS: per-language readiness = the
+                // engine reports a voice for that language. No model files.
                 _modelStatus.value = mapOf(
                     "vad" to vadOk, "asr" to asrOk, "mt" to mtOk,
                     "emotion" to emoOk,
-                    "tts-hi" to (modelDownloader.isPresent(catalog.first { it.id == "tts-hi" }) || mmsReady("hi")),
-                    "tts-ta" to mmsReady("ta"),
-                    "tts-pa" to mmsReady("pa")
-                ) + catalog.filter { it.type == "mms" }
-                    .associate { it.id to modelDownloader.isPresent(it) }
+                    "tts-hi" to tts.isReady, "tts-ta" to tts.isReady, "tts-pa" to tts.isReady
+                )
             }
             startTransport(s.transportType)
             withContext(Dispatchers.Main) {
@@ -395,7 +383,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _settings.value = s
         prefs.save(s)
         viewModelScope.launch(Dispatchers.IO) {
-            tts.setSystemLang(s.sourceLanguage)
+            tts.setLang(s.sourceLanguage)
         }
     }
 
@@ -427,8 +415,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (autoDownloadJob?.isActive == true) return
         autoDownloadJob = viewModelScope.launch(Dispatchers.IO) {
             val order = listOf(
-                "vad", "tts-hi", "mt", "mt-dec-past", "mt-dec", "mt-tok", "mt-tok-tgt",
-                "mms-ta", "mms-ta-tok", "mms-pa", "mms-pa-tok"
+                "vad", "mt", "mt-dec-past", "mt-dec", "mt-tok", "mt-tok-tgt"
             )
             for (id in order) {
                 val spec = ModelCatalog.load(ctx).firstOrNull { it.id == id } ?: continue
@@ -461,33 +448,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     "asr" -> asr.initialize(_settings.value.sourceLanguage)
                     "mt" -> translator.initialize()
                     "emotion" -> emotion.initialize()
-                    "tts" -> {
-                        // spec.languages is a JSON list like ["hi"].
-                        val lang = spec.languages
-                            ?.removeSurrounding("[", "]")
-                            ?.split(",")
-                            ?.firstOrNull()?.trim('"', ' ')
-                            ?.takeIf { it.isNotBlank() }
-                            ?: _settings.value.sourceLanguage
-                        tts.initialize(lang)
-                    }
-                    // MMS voice file: after both model+tokens land, load the
-                    // voice and mark the tts-<lang> status key from real load.
-                    "mms" -> {
-                        val lang = spec.languages
-                            ?.removeSurrounding("[", "]")
-                            ?.split(",")
-                            ?.firstOrNull()?.trim('"', ' ')
-                            ?: return@runCatching false
-                        if (spec.id.endsWith("-tok")) {
-                            modelDownloader.isPresent(
-                                ModelCatalog.load(ctx).first { it.id == "mms-$lang" }
-                            )
-                        } else {
-                            tts.loadMms(lang)
-                        }
-                    }
-                    else -> false
+                    else -> tts.initialize(_settings.value.sourceLanguage)
                 }
             }.getOrDefault(false)
         }

@@ -1,5 +1,5 @@
 {
-  "_comment": "iTantra model catalog. Swap ANY model by editing its url/relPath here — no code change needed. Keep sha256 blank to skip integrity checks; keep url blank for manual-install models. External-data ONNX (weights beside a stub) use dataUrl+dataRelPath and must match the .onnx stub's 'location' byte-for-byte.",
+  "_comment": "iTantra model catalog. Swap ANY model by editing its url/relPath here — no code change needed. Keep sha256 blank to skip integrity checks; keep url blank for manual-install models. External-data ONNX (weights beside a stub) use dataUrl+dataRelPath and must match the .onnx stub's 'location' byte-for-byte. TTS voices come from the free Hear2Read Android app (Play Store) via Android TTS engine binding — no model downloads.",
   "models": [
     {
       "id": "vad",
@@ -96,61 +96,6 @@
       "type": "emotion",
       "url": "",
       "relPath": "models/emotion2vec.onnx"
-    },
-    {
-      "id": "tts-hi",
-      "type": "tts",
-      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-hi_IN-pratham-medium.tar.bz2",
-      "relPath": "models/tts_hi_IN-medium.tar.bz2",
-      "sizeBytes": 67238438,
-      "extractTo": "models/tts/hi",
-      "languages": ["hi"]
-    },
-    {
-      "id": "tts-ta",
-      "type": "tts",
-      "url": "",
-      "relPath": "models/tts_ta_IN-medium.onnx",
-      "languages": ["ta"]
-    },
-    {
-      "id": "tts-pa",
-      "type": "tts",
-      "url": "",
-      "relPath": "models/tts_pa_IN-medium.onnx",
-      "languages": ["pa"]
-    },
-    {
-      "id": "mms-ta",
-      "type": "mms",
-      "url": "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/tam/model.onnx",
-      "relPath": "models/mms/ta/model.onnx",
-      "sizeBytes": 114032388,
-      "languages": ["ta"]
-    },
-    {
-      "id": "mms-ta-tok",
-      "type": "mms",
-      "url": "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/tam/tokens.txt",
-      "relPath": "models/mms/ta/tokens.txt",
-      "sizeBytes": 375,
-      "languages": ["ta"]
-    },
-    {
-      "id": "mms-pa",
-      "type": "mms",
-      "url": "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/pan/model.onnx",
-      "relPath": "models/mms/pa/model.onnx",
-      "sizeBytes": 114033156,
-      "languages": ["pa"]
-    },
-    {
-      "id": "mms-pa-tok",
-      "type": "mms",
-      "url": "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/pan/tokens.txt",
-      "relPath": "models/mms/pa/tokens.txt",
-      "sizeBytes": 400,
-      "languages": ["pa"]
     }
   ]
 }

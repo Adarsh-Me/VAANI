@@ -42,3 +42,6 @@ shot*.png
 tapfb.png
 ui_now.xml
 lat.xml
+
+# HF token (SraVaani gated access)
+.hf_token
