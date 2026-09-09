@@ -77,7 +77,10 @@ class FliteEngine(private val context: Context) {
         return true
     }
 
-    /** Load the voice for [lang]; true when speak() will work. */
+    /** Load the voice for [lang]; true when speak() will work.
+     *  Serialized: concurrent flite_voice_load corrupts flite's global val
+     *  registry ("VAL: tried to access car in N typed val" → longjmp fail). */
+    @Synchronized
     fun prepare(lang: String): Boolean {
         if (lang in loaded) return true
         if (!seedFromAssets()) return false
@@ -87,11 +90,13 @@ class FliteEngine(private val context: Context) {
         if (!f.exists()) return false
         val ok = runCatching { nativeLoadVoice(f.absolutePath, lang) }.getOrDefault(false)
         Log.i(TAG, "voice load lang=$lang ok=$ok (${f.length()} bytes)")
+        if (!ok) Log.w(TAG, "flite reason: see logcat tag 'flite'/'FliteJNI' for cst_errmsg output")
         if (ok) loaded.add(lang)
         return ok
     }
 
-    /** @return PCM floats [-1,1] at [outRate], or null. */
+    /** @return PCM floats [-1,1] at [outRate], or null. Serialized with prepare(). */
+    @Synchronized
     fun speak(text: String, lang: String, outRate: FloatArray): FloatArray? {
         if (lang !in loaded) return null
         val pcm = runCatching { nativeSpeak(text, lang, outRate) }.getOrNull()
@@ -100,6 +105,7 @@ class FliteEngine(private val context: Context) {
         return pcm
     }
 
+    @Synchronized
     fun isReady(lang: String): Boolean = lang in loaded
     fun supportedLangs(): Set<String> = VOICE_ASSETS.keys
 }

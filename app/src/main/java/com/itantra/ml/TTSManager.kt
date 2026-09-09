@@ -62,11 +62,32 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
         }
     }
 
-    suspend fun initialize(lang: String): Boolean {
+    suspend fun initialize(vararg langs: String): Boolean {
         ensureDefaultTts()
         ensureH2RTts()
-        if (defaultReady) setLang(lang)
+        // Preload BUNDLED flite voices for every requested lang up-front
+        // (hi/ta/gu/mr/te). Earlier only sourceLanguage was prepared, so the
+        // loopback playLang (= targetLanguage) fell through to system voice.
+        for (lang in langs.distinct()) {
+            if (lang in flite.supportedLangs()) {
+                runCatching { flite.prepare(lang) }
+            }
+            if (defaultReady) runCatching { setLang(lang) }
+        }
+        if (langs.isEmpty() && defaultReady) setLang("hi")
         return isReady
+    }
+
+    /** Back-compat single-lang entry. */
+    suspend fun initialize(lang: String): Boolean = initialize(*arrayOf(lang))
+
+    /** Warm both sides of a pair (call on settings change / swap). */
+    suspend fun warmPair(src: String, tgt: String) {
+        ensureH2RTts()
+        for (lang in setOf(src, tgt)) {
+            if (lang in flite.supportedLangs()) runCatching { flite.prepare(lang) }
+            runCatching { setLang(lang) }
+        }
     }
 
     private suspend fun ensureDefaultTts() {
@@ -121,6 +142,9 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
             "ta" -> Locale("ta", "IN")
             "bn" -> Locale("bn", "IN")
             "pa" -> Locale("pa", "IN")
+            "gu" -> Locale("gu", "IN")
+            "mr" -> Locale("mr", "IN")
+            "te" -> Locale("te", "IN")
             else -> Locale(lang)
         }
         var ok = false
@@ -156,7 +180,8 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
         // Bundled Flite engine first for every language it has voices for
         // (hi/ta/gu/mr/te — Hear2Read flitevox from festvox).
         if (lang in flite.supportedLangs()) {
-            if (flite.prepare(lang)) {
+            val prepared = runCatching { flite.prepare(lang) }.getOrDefault(false)
+            if (prepared) {
                 val rate = FloatArray(1) { 16000f }
                 val pcm = flite.speak(text, lang, rate)
                 if (pcm != null) {
@@ -169,6 +194,9 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
                         engine = "flite-$lang"
                     ).also { Log.i(TAG, "TTS engine=flite-$lang ${pcm.size} samples @${sr}Hz") }
                 }
+                Log.w(TAG, "flite-$lang prepared but speak returned null/empty — falling to system")
+            } else {
+                Log.w(TAG, "flite-$lang prepare FAILED — falling to system (see FliteTTS tag)")
             }
         }
         val engine = when {

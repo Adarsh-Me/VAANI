@@ -147,7 +147,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val asrD = async { asr.initialize(s.sourceLanguage) }
             val mtD = async { translator.initialize() }
             val emoD = async { emotion.initialize() }
-            val ttsD = async { tts.initialize(s.sourceLanguage) }
+            val ttsD = async { tts.initialize(s.sourceLanguage, s.targetLanguage) }
             val (vadOk, asrOk, mtOk, emoOk, ttsOk) = listOf(vadD, asrD, mtD, emoD, ttsD)
                 .map { it.await() }
             withContext(Dispatchers.Main) {
@@ -383,7 +383,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _settings.value = s
         prefs.save(s)
         viewModelScope.launch(Dispatchers.IO) {
-            tts.setLang(s.sourceLanguage)
+            // Warm BOTH sides: loopback plays targetLanguage, BLE plays
+            // sourceLanguage — single-side setLang left ta/gu on system voice.
+            tts.warmPair(s.sourceLanguage, s.targetLanguage)
         }
     }
 
@@ -448,7 +450,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     "asr" -> asr.initialize(_settings.value.sourceLanguage)
                     "mt" -> translator.initialize()
                     "emotion" -> emotion.initialize()
-                    else -> tts.initialize(_settings.value.sourceLanguage)
+                    else -> tts.initialize(_settings.value.sourceLanguage, _settings.value.targetLanguage)
                 }
             }.getOrDefault(false)
         }
