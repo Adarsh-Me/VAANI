@@ -42,7 +42,7 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
     private val flite = FliteEngine(context)
     private val systemLangs = mutableSetOf<String>()
 
-    val isReady: Boolean get() = defaultReady || h2rReady || flite.isReady
+    val isReady: Boolean get() = defaultReady || h2rReady || flite.isReady("hi")
 
     /** Play Store package of the Hear2Read voices, if installed. */
     fun hear2ReadEnginePackage(): String? {
@@ -153,19 +153,21 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
         if (text.isBlank()) return null
         val t0 = System.currentTimeMillis()
         ensureH2RTts()
-        // Bundled Flite engine first for languages it has voices for (Hindi).
-        if (lang == "hi") {
-            if (flite.initialize()) {
+        // Bundled Flite engine first for every language it has voices for
+        // (hi/ta/gu/mr/te — Hear2Read flitevox from festvox).
+        if (lang in flite.supportedLangs()) {
+            if (flite.prepare(lang)) {
                 val rate = FloatArray(1) { 16000f }
-                val pcm = flite.speak(text, rate)
+                val pcm = flite.speak(text, lang, rate)
                 if (pcm != null) {
+                    val sr = rate[0].toInt().coerceAtLeast(8000)
                     return SynthesisResult(
                         audioData = pcm,
-                        sampleRate = rate[0].toInt(),
-                        durationMs = (pcm.size * 1000L / rate[0].toInt().coerceAtLeast(1)),
+                        sampleRate = sr,
+                        durationMs = (pcm.size * 1000L / sr),
                         inferenceTimeMs = System.currentTimeMillis() - t0,
-                        engine = "flite-hi"
-                    ).also { Log.i(TAG, "TTS engine=flite-hi ${pcm.size} samples @${rate[0].toInt()}") }
+                        engine = "flite-$lang"
+                    ).also { Log.i(TAG, "TTS engine=flite-$lang ${pcm.size} samples @${sr}Hz") }
                 }
             }
         }

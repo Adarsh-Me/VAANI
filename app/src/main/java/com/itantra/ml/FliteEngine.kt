@@ -5,23 +5,29 @@ import android.util.Log
 import java.io.File
 
 /**
- * Bundled Flite TTS (Hear2Read Indic flite fork). JNI against libttsflite.so
- * built from tools/flite-src + tools/flite-android/itantra_flite_jni.cc.
- *
- * Voice: demo_indic_tdil_hin-875-cmpt.flitevox (Hindi, public in the
- * Hear2Read/Voices repo, MIT-style license) seeded from assets/flite/.
- * Engine registration matches Hear2Read's shipped app exactly.
+ * Bundled Flite TTS (Hear2Read Indic flite fork). Multi-voice: flitevox files
+ * from festvox.org voxdata-v2.0.0 (public, Hear2Read's own voice server):
+ *   hi -> hindi_tdil.flitevox   (demo_indic_tdil_hin, verified)
+ *   ta -> tamil_sxv.flitevox
+ *   gu -> gujarati_axb.flitevox
+ *   mr -> marathi_slp.flitevox
+ *   te -> telugu_knr.flitevox
+ * Registration sequence matches Hear2Read's shipped engine exactly.
+ * (pa/bn have no public flite voice — they fall back.)
  */
 class FliteEngine(private val context: Context) {
 
     companion object {
         const val TAG = "FliteTTS"
-        const val VOICE_ASSET = "flite/hindi_tdil.flitevox"
-        const val VOICE_FILE = "models/flite/hindi_tdil.flitevox"
-        const val VOICE_BYTES = 21_538_000L
+        // lang -> (asset name, expected bytes 0 = unknown size accept)
+        val VOICE_ASSETS: Map<String, Pair<String, Long>> = mapOf(
+            "hi" to ("flite/hindi_tdil.flitevox" to 21_538_000L),
+            "ta" to ("flite/tamil_sxv.flitevox" to 0L),
+            "gu" to ("flite/gujarati_axb.flitevox" to 0L),
+            "mr" to ("flite/marathi_slp.flitevox" to 0L),
+            "te" to ("flite/telugu_knr.flitevox" to 0L)
+        )
 
-        // The .so carries flite + our JNI; only for arm64 (release strips x86_64
-        // anyway; keep both ABIs built so debug on emulator works).
         @Volatile private var nativeReady: Boolean? = null
 
         private fun loadNative(): Boolean {
@@ -34,48 +40,66 @@ class FliteEngine(private val context: Context) {
         }
     }
 
-    private external fun nativeLoadVoice(path: String): Boolean
-    private external fun nativeSpeak(text: String, outRate: FloatArray?): FloatArray
+    private external fun nativeLoadVoice(path: String, lang: String): Boolean
+    private external fun nativeSpeak(text: String, lang: String, outRate: FloatArray?): FloatArray
 
-    @Volatile private var voiceLoaded = false
+    private val loaded = mutableSetOf<String>()
+    private var seeded = false
 
-    /** Seeds the flitevox from assets if needed, then loads it. */
-    fun initialize(): Boolean {
-        if (voiceLoaded) return true
+    /** Copies bundled voices from assets to filesDir (once). */
+    private fun seedFromAssets(): Boolean {
+        if (seeded) return true
         if (!loadNative()) {
             Log.w(TAG, "libttsflite.so unavailable")
             return false
         }
-        val dest = File(context.filesDir, VOICE_FILE)
-        if (!dest.exists() || dest.length() != VOICE_BYTES) {
-            runCatching {
-                context.assets.open(VOICE_ASSET).use { input ->
+        runCatching {
+            for ((_, pair) in VOICE_ASSETS) {
+                val asset = pair.first
+                val name = asset.substringAfterLast('/')
+                val dest = File(context.filesDir, "models/flite/$name")
+                if (dest.exists() && dest.length() > 1_000_000) continue
+                context.assets.open(asset).use { input ->
                     dest.parentFile?.mkdirs()
-                    val tmp = File(dest.parentFile, dest.name + ".tmp")
+                    val tmp = File(dest.parentFile, name + ".tmp")
                     tmp.outputStream().use { out -> input.copyTo(out, 1 shl 20) }
-                    if (tmp.length() == VOICE_BYTES) {
+                    if (tmp.length() > 1_000_000) {
                         dest.delete()
                         tmp.renameTo(dest)
                     } else tmp.delete()
                 }
-            }.onFailure {
-                Log.w(TAG, "voice seed failed: ${it.message}")
-                return false
             }
+        }.onFailure {
+            Log.w(TAG, "voice seed failed: ${it.message}")
+            return false
         }
-        voiceLoaded = runCatching { nativeLoadVoice(dest.absolutePath) }.getOrDefault(false)
-        Log.i(TAG, "flite voice load=$voiceLoaded (${dest.length()} bytes)")
-        return voiceLoaded
+        seeded = true
+        return true
+    }
+
+    /** Load the voice for [lang]; true when speak() will work. */
+    fun prepare(lang: String): Boolean {
+        if (lang in loaded) return true
+        if (!seedFromAssets()) return false
+        val pair = VOICE_ASSETS[lang] ?: return false
+        val name = pair.first.substringAfterLast('/')
+        val f = File(context.filesDir, "models/flite/$name")
+        if (!f.exists()) return false
+        val ok = runCatching { nativeLoadVoice(f.absolutePath, lang) }.getOrDefault(false)
+        Log.i(TAG, "voice load lang=$lang ok=$ok (${f.length()} bytes)")
+        if (ok) loaded.add(lang)
+        return ok
     }
 
     /** @return PCM floats [-1,1] at [outRate], or null. */
-    fun speak(text: String, outRate: FloatArray): FloatArray? {
-        if (!voiceLoaded) return null
-        val pcm = runCatching { nativeSpeak(text, outRate) }.getOrNull()
+    fun speak(text: String, lang: String, outRate: FloatArray): FloatArray? {
+        if (lang !in loaded) return null
+        val pcm = runCatching { nativeSpeak(text, lang, outRate) }.getOrNull()
         if (pcm == null || pcm.isEmpty()) return null
-        Log.i(TAG, "spoke ${pcm.size} samples @ ${outRate[0].toInt()}Hz")
+        Log.i(TAG, "spoke $lang ${pcm.size} samples @ ${outRate[0].toInt()}Hz")
         return pcm
     }
 
-    val isReady: Boolean get() = voiceLoaded
+    fun isReady(lang: String): Boolean = lang in loaded
+    fun supportedLangs(): Set<String> = VOICE_ASSETS.keys
 }
