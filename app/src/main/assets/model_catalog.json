@@ -1,5 +1,5 @@
 {
-  "_comment": "iTantra model catalog. Swap ANY model by editing its url/relPath here — no code change needed. Keep sha256 blank to skip integrity checks; keep url blank for manual-install models. External-data ONNX (weights beside a stub) use dataUrl+dataRelPath and must match the .onnx stub's 'location' byte-for-byte. TTS voices come from the free Hear2Read Android app (Play Store) via Android TTS engine binding — no model downloads.",
+  "_comment": "iTantra model catalog. Swap ANY model by editing its url/relPath here — no code change needed. SraVaani STT is BUNDLED in the APK (assets/savaani/, seeded to filesDir on first launch by SavaaniEngine) — no network needed. Keep sha256 blank to skip integrity checks; keep url blank for manual-install/bundled models. External-data ONNX (weights beside a stub) use dataUrl+dataRelPath and must match the .onnx stub's 'location' byte-for-byte. TTS voices come from the free Hear2Read Android app (Play Store) via Android TTS engine binding — no model downloads.",
   "models": [
     {
       "id": "vad",
@@ -9,73 +9,33 @@
       "sizeBytes": 1800000
     },
     {
-      "id": "asr-hi",
-      "type": "asr",
-      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/hi/model.int8.onnx",
-      "relPath": "models/asr/hi/model.int8.onnx",
-      "sizeBytes": 197595593,
-      "languages": ["hi"],
-      "_note": "IndicConformer hybrid CTC (INT8, NeMo export, sherpa-compatible). Inputs: audio_signal [B,80,T] 80-dim log-mel fbank; length [B]. Output: logprobs [B,T,5633]; blank id 5632; tokens.txt shared at models/asr/tokens.txt. Apache-2.0 (upstream AI4Bharat MIT)."
-    },
-    {
-      "id": "asr-ta",
-      "type": "asr",
-      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/ta/model.int8.onnx",
-      "relPath": "models/asr/ta/model.int8.onnx",
-      "sizeBytes": 197595513,
-      "languages": ["ta"]
-    },
-    {
-      "id": "asr-bn",
-      "type": "asr",
-      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/bn/model.int8.onnx",
-      "relPath": "models/asr/bn/model.int8.onnx",
-      "sizeBytes": 197595578,
-      "languages": ["bn"]
-    },
-    {
-      "id": "asr-pa",
-      "type": "asr",
-      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/pa/model.int8.onnx",
-      "relPath": "models/asr/pa/model.int8.onnx",
-      "sizeBytes": 197595548,
-      "languages": ["pa"]
-    },
-    {
-      "id": "asr-tok",
-      "type": "asr",
-      "url": "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/tokens.txt",
-      "relPath": "models/asr/tokens.txt",
-      "sizeBytes": 67605
-    },
-    {
       "id": "savaani-enc",
       "type": "asr",
       "url": "",
       "relPath": "models/savaani/encoder_int8.onnx",
-      "sizeBytes": 454300000,
-      "_note": "SraVaani-1.0 FastConformer TDT (ARTPARK-IISc, MIT, 105 langs, ONE model). ONNX int8 exported host-side. Host the 3 files (encoder_int8/predict/joint) on any URL and fill url fields to enable."
+      "sizeBytes": 476365682,
+      "_note": "SraVaani-1.0 FastConformer TDT (ARTPARK-IISc, MIT, 105 langs, ONE model). BUNDLED at assets/savaani/encoder_int8.onnx (int8, 476365682 bytes); SavaaniEngine seeds filesDir on first launch — url stays blank."
     },
     {
       "id": "savaani-pred",
       "type": "asr",
       "url": "",
       "relPath": "models/savaani/predict.onnx",
-      "sizeBytes": 24700000
+      "sizeBytes": 25931447
     },
     {
       "id": "savaani-joint",
       "type": "asr",
       "url": "",
       "relPath": "models/savaani/joint.onnx",
-      "sizeBytes": 16300000
+      "sizeBytes": 17101755
     },
     {
       "id": "savaani-tok",
       "type": "asr",
       "url": "",
       "relPath": "models/savaani/tokens.txt",
-      "sizeBytes": 80000
+      "sizeBytes": 73896
     },
     {
       "id": "mt",

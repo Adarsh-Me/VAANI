@@ -39,9 +39,10 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
     private var h2rTts: TextToSpeech? = null
     private var h2rReady = false
     private var h2rEngine: String? = null
+    private val flite = FliteEngine(context)
     private val systemLangs = mutableSetOf<String>()
 
-    val isReady: Boolean get() = defaultReady || h2rReady
+    val isReady: Boolean get() = defaultReady || h2rReady || flite.isReady
 
     /** Play Store package of the Hear2Read voices, if installed. */
     fun hear2ReadEnginePackage(): String? {
@@ -152,6 +153,22 @@ class TTSManager(private val context: Context, private val threads: Int = 2) {
         if (text.isBlank()) return null
         val t0 = System.currentTimeMillis()
         ensureH2RTts()
+        // Bundled Flite engine first for languages it has voices for (Hindi).
+        if (lang == "hi") {
+            if (flite.initialize()) {
+                val rate = FloatArray(1) { 16000f }
+                val pcm = flite.speak(text, rate)
+                if (pcm != null) {
+                    return SynthesisResult(
+                        audioData = pcm,
+                        sampleRate = rate[0].toInt(),
+                        durationMs = (pcm.size * 1000L / rate[0].toInt().coerceAtLeast(1)),
+                        inferenceTimeMs = System.currentTimeMillis() - t0,
+                        engine = "flite-hi"
+                    ).also { Log.i(TAG, "TTS engine=flite-hi ${pcm.size} samples @${rate[0].toInt()}") }
+                }
+            }
+        }
         val engine = when {
             h2rReady && systemLangs.contains(lang) -> h2rTts
             defaultReady && systemLangs.contains(lang) -> defaultTts

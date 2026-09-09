@@ -1,4 +1,4 @@
-import java.util.Properties
+﻿import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -17,8 +17,8 @@ android {
         applicationId = "com.itantra"
         minSdk = 26 // Android 8.0 per PRD (NNAPI paths need 27+; guarded at runtime)
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1-demo"
+        versionCode = 3
+        versionName = "1.2-demo" // SraVaani STT bundled in APK: fully offline first launch
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -76,22 +76,31 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14" // matches Kotlin 1.9.24
     }
+    // SraVaani weights ship bundled in assets/savaani/. Store .onnx uncompressed:
+    // quantized weights are high-entropy (deflate gains ~0), and stored assets
+    // are stream-copyable to filesDir at first launch with zero inflate cost.
+    androidResources {
+        noCompress += "onnx"
+        noCompress += "flitevox"
+    }
+    // Flite TTS engine (Hear2Read Indic flite fork + happyalu JNI) built
+    // from tools/flite-src + tools/flite-android via NDK r28 clang.
+    // Outputs libttsflite.so â€” loaded by ml/FliteEngine.kt.
+    externalNativeBuild {
+        cmake {
+            path = file("../tools/flite-android/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
-        // No jniLibs pickFirsts: jniLibs carries only the STATIC
-        // libsherpa-onnx-jni.so (onnxruntime baked in, v1.13.7 release), and the
-        // single libonnxruntime.so comes from the onnxruntime-android AAR below.
-        // The previous shared build shipped a core exporting OrtGetApiBase@
-        // VERS_1.27.1 while the 1.17.0 Java bridge requires @VERS_1.17.0 —
-        // Android's linker enforces symbol versions, so any ONNX Java session
-        // crashed with UnsatisfiedLinkError the moment a model file existed.
     }
 }
 
 dependencies {
-    // --- UI (versions per Implementation.md §1.3) ---
+    // --- UI (versions per Implementation.md Â§1.3) ---
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -109,7 +118,7 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
 
-    // --- Concurrency (per Implementation.md §1.3) ---
+    // --- Concurrency (per Implementation.md Â§1.3) ---
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // --- ML runtime: 1.29.0 (was 1.17.0). The IndicTrans2 encoder stub needs
@@ -124,7 +133,7 @@ dependencies {
 
     // --- JSON (packet codec uses org.json; no extra dep needed, ships with Android) ---
 
-    // NOTE (deliberate deviations from Implementation.md §1.3):
+    // NOTE (deliberate deviations from Implementation.md Â§1.3):
     // - androidx.bluetooth alpha02 dropped: artifact is experimental; framework
     //   android.bluetooth LE APIs used directly (BLEServer/BLEClient).
     // - oboe dropped: AudioRecord/AudioTrack cover the 16kHz mono path with no

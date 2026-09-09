@@ -196,10 +196,10 @@ fun OnboardingScreen(vm: MainViewModel, onDone: () -> Unit) {
                         style = MaterialTheme.typography.headlineMedium
                     )
                     Spacer(Modifier.height(12.dp))
-                    // Live pipeline readiness; prototype row copy kept verbatim.
+                    // Live pipeline readiness; SraVaani ships bundled (v1.2+).
                     val rows = listOf(
-                        Triple("Speech Recognition · IndicConformer-600M INT8", "asr", "180 MB"),
-                        Triple("Translation Engine · IndicTrans2-320M INT8", "mt", "160 MB"),
+                        Triple("Speech Recognition · SraVaani-1.0 TDT INT8", "asr", "519 MB"),
+                        Triple("Translation Engine · IndicTrans2-320M INT8", "mt", "330 MB"),
                         Triple("Hindi Voice (TTS) · piper · pratham medium", "tts-hi", "25 MB"),
                         Triple("Tamil Voice (TTS) · system fallback", "tts-ta", "25 MB")
                     )
@@ -234,8 +234,9 @@ fun OnboardingScreen(vm: MainViewModel, onDone: () -> Unit) {
                         }
                     }
                     Hint(
-                        "⚠️ Keep the app open during download. Text chat works now; " +
-                            "voice lights up after VAD (2 MB) + voices."
+                        "⚠️ Keep the app open during download. Speech + text work " +
+                            "offline out of the box (SraVaani STT ships in the APK); " +
+                            "neural voices install via Hear2Read."
                     )
                     Spacer(Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

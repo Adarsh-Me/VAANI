@@ -47,3 +47,16 @@ lat.xml
 .hf_token
 
 MODEL_STACK.md
+
+# Flite engine source (local native-build vendor; re-clone per tools/gen_cmake2.py)
+tools/flite-src/
+tools/flite-android/flite-src
+# keep the flite build recipe in git (reconstructs fully from public repos)
+!tools/flite-android/CMakeLists.txt
+!tools/flite-android/itantra_flite_jni.cc
+# .cxx build cache
+app/.cxx/
+app/.cxx.bak-flite/
+# bundled model assets are build artifacts (seeded from tooling, not source)
+app/src/main/assets/savaani/
+app/src/main/assets/flite/

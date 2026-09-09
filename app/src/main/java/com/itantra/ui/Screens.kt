@@ -109,7 +109,7 @@ fun AppShell(
     val conn by vm.connection.collectAsState()
     val ble = settings.transportType == TransportType.BLE
     val pairLabel = settings.sourceLanguage.uppercase() + " â†’ " +
-        settings.targetLanguage.uppercase() + " Â· " + if (ble) "BLE" else "Loopback"
+        settings.targetLanguage.uppercase() + " · " + if (ble) "BLE" else "Loopback"
     // Loopback rehearses as CONNECTED â€” only call it BLE live on the real transport.
     val linkLabel = when {
         !ble -> "Ready"
@@ -231,7 +231,7 @@ fun SettingsScreen(
                         ) { vm.setAutoMode(it) }
                         Column {
                             Text(
-                                "Mic sensitivity Â· " + "%.2f".format(settings.vadThreshold),
+                                "Mic sensitivity · " + "%.2f".format(settings.vadThreshold),
                                 style = MaterialTheme.typography.labelLarge
                             )
                             Slider(
@@ -287,7 +287,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        KvText("MTU 517 Â· TX notify on Â· mesh relay roadmap (+150 ms/hop).")
+                        KvText("MTU 517 · TX notify on · mesh relay roadmap (+150 ms/hop).")
                         ITSecondaryButton("Open connection screen", Modifier.fillMaxWidth()) {
                             onNavigate("connection")
                         }
@@ -304,7 +304,7 @@ fun SettingsScreen(
                         ) { vm.updateSettings(settings.copy(emergencyMaxVolume = it)) }
                         ToggleRow(
                             "Vibration",
-                            "500 Â· 200 Â· 500 pattern",
+                            "500 · 200 · 500 pattern",
                             settings.emergencyVibrationEnabled
                         ) { vm.updateSettings(settings.copy(emergencyVibrationEnabled = it)) }
                         ToggleRow(
@@ -328,12 +328,12 @@ fun SettingsScreen(
             }
             "About" -> {
                 ITCard {
-                    Text("iTantra 1.0-demo Â· SIH26173", style = MaterialTheme.typography.titleMedium)
+                    Text("iTantra 1.0-demo · SIH26173", style = MaterialTheme.typography.titleMedium)
                     Hint(
                         "Cascade ASR â†’ MT â†’ TTS + 5-byte prosody side-channel. " +
                             "Demo hi/ta/bn. Budgets: <2 s p50, ~412 MB with models."
                     )
-                    KvText("ISRO misc Â· software Â· offline walkie-talkie")
+                    KvText("ISRO misc · software · offline walkie-talkie")
                 }
             }
         }
@@ -393,7 +393,7 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
     val scanning = settings.transportType == TransportType.BLE && !connected
     AppShell(current = "connection", vm = vm, onNavigate = onNavigate) {
         ScreenTitle(
-            if (connected) "Connectivity Â· scanning complete" else "Connectivity",
+            if (connected) "Connectivity · scanning complete" else "Connectivity",
             "Two-phone link"
         )
         ITCard {
@@ -406,7 +406,7 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                         style = MaterialTheme.typography.titleSmall
                     )
                     Hint(
-                        if (connected) "Signal strong (âˆ’58 dBm) Â· MTU 517 Â· TX notify on Â· ready to communicate"
+                        if (connected) "Signal strong (âˆ’58 dBm) · MTU 517 · TX notify on · ready to communicate"
                         else "Single-phone rehearsal. Packets stay on this device."
                     )
                 }
@@ -443,7 +443,7 @@ fun ConnectionScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 LangCard(
                     title = "iTantra peer",
-                    subtitle = "Strong Â· âˆ’58 dBm Â· iTantra peer",
+                    subtitle = "Strong · âˆ’58 dBm · iTantra peer",
                     selected = true,
                     onClick = {}
                 )
@@ -517,8 +517,8 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
         ITCard(padding = 16) {
             Eyebrow("Languages · 11 regional Indian")
             Spacer(Modifier.height(6.dp))
-            Hint("Tap a language to expand its models. SraVaani (STT) and " +
-                "IndicTrans2 (MT) are shared — one download covers all 11.")
+            Hint("Tap a language to expand its models. SraVaani (STT) is bundled " +
+                "in the APK; IndicTrans2 (MT) is one shared download covering all 11.")
             Spacer(Modifier.height(8.dp))
             for ((code, name, _) in eleven) {
                 val isExp = expanded == code
@@ -561,7 +561,7 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                                     live -> TagChip("✓")
                                     dl?.status?.name == "RUNNING" -> KvText("${((dl?.fraction ?: 0f) * 100).toInt()}%")
                                     dl?.status?.name == "FAILED" -> ITMini("Retry") { vm.downloadModel(spec.id) }
-                                    spec.url.isBlank() -> TagChip("HOST TBD")
+                                    spec.url.isBlank() -> TagChip(if (spec.id.startsWith("savaani")) "BUNDLED" else "HOST TBD")
                                     else -> ITMini("Get") { vm.downloadModel(spec.id) }
                                 }
                             }
@@ -579,7 +579,7 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
                                     live -> TagChip("✓")
                                     dl?.status?.name == "RUNNING" -> KvText("${((dl?.fraction ?: 0f) * 100).toInt()}%")
                                     dl?.status?.name == "FAILED" -> ITMini("Retry") { vm.downloadModel(spec.id) }
-                                    spec.url.isBlank() -> TagChip("HOST TBD")
+                                    spec.url.isBlank() -> TagChip(if (spec.id.startsWith("savaani")) "BUNDLED" else "HOST TBD")
                                     else -> ITMini("Get") { vm.downloadModel(spec.id) }
                                 }
                             }
@@ -617,12 +617,12 @@ fun ModelsScreen(vm: MainViewModel, onNavigate: (String) -> Unit) {
         ITCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Storage", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                KvText("${formatBytes(usedBytes)} / 512 MB")
+                KvText("${formatBytes(usedBytes)} / 1 GB")
             }
             Spacer(Modifier.height(8.dp))
             ITProgress((usedBytes / (512.0 * 1000 * 1000)).toFloat().coerceIn(0f, 1f))
             Spacer(Modifier.height(6.dp))
-            Hint("SraVaani + IndicTrans2 shared · Hear2Read voices via app.")
+            Hint("SraVaani STT bundled · IndicTrans2 MT download · Hear2Read voices via app.")
         }
         ITSecondaryButton("Check for updates", Modifier.fillMaxWidth()) {
             catalog.forEach { spec ->
@@ -644,15 +644,18 @@ private fun formatBytes(b: Long): String = when {
 /** Mock-style display names for the catalog rows. */
 private fun modelLabel(spec: com.itantra.utils.ModelSpec): String = when (spec.id) {
     "vad" -> "Silero VAD 1.8 MB"
-    "asr" -> "IndicConformer-600M INT8"
+    "savaani-enc" -> "SraVaani-1.0 TDT INT8 · encoder (bundled)"
+    "savaani-pred" -> "SraVaani prediction network (bundled)"
+    "savaani-joint" -> "SraVaani joint network (bundled)"
+    "savaani-tok" -> "SraVaani tokens (bundled)"
     "mt" -> "IndicTrans2-320M INT8"
-    "mt-dec" -> "IndicTrans2 MT Â· decoder"
+    "mt-dec" -> "IndicTrans2 MT decoder"
     "emotion" -> "Emotion2Vec"
-    "tts-hi" -> "Hindi voice Â· piper medium"
-    "tts-ta" -> "Tamil voice Â· system fallback"
-    "tts-pa" -> "Punjabi voice Â· system fallback"
-    "mt-tok" -> "IndicTrans2 tokenizer Â· source"
-    "mt-tok-tgt" -> "IndicTrans2 tokenizer Â· target"
+    "tts-hi" -> "Hindi voice · piper medium"
+    "tts-ta" -> "Tamil voice · system fallback"
+    "tts-pa" -> "Punjabi voice · system fallback"
+    "mt-tok" -> "IndicTrans2 tokenizer · source"
+    "mt-tok-tgt" -> "IndicTrans2 tokenizer · target"
     else -> spec.id
 }
 

@@ -23,7 +23,8 @@ import kotlin.math.ceil
  * n_fft 512, hop 160, preemph 0.97, mag_power 2, log + per-feature
  * mean-var normalize) — pre-baked matrix shipped in assets/savaani_frontend.json.
  *
- * Model files (catalog: savaani-enc / savaani-pred / savaani-joint / savaani-tok):
+ * Model files are BUNDLED in the APK at assets/savaani/ (offline-first
+ * distribution) and seeded into filesDir on first launch (see BUNDLED_FILES):
  *   models/savaani/encoder_int8.onnx  476 MB
  *   models/savaani/predict.onnx        25 MB
  *   models/savaani/joint.onnx          17 MB
@@ -49,6 +50,21 @@ class SavaaniEngine(private val context: Context, private val threads: Int = 4) 
         const val SUBSAMPLE = 8
         const val NUM_MEL = 128
         const val SOS = 5000 // blank doubles as SOS
+
+        /**
+         * Weights BUNDLED in the APK at assets/savaani/ (v1.2+ distribution —
+         * the app must work offline for users who received the shared APK; no
+         * HF token / network needed for STT). Exact byte sizes for seed
+         * validation; a partial copy (process killed mid-seed) fails the size
+         * check and is re-extracted on the next launch.
+         */
+        const val ASSET_DIR = "savaani"
+        val BUNDLED_FILES = mapOf(
+            "encoder_int8.onnx" to 476_365_682L,
+            "predict.onnx" to 25_931_447L,
+            "joint.onnx" to 17_101_755L,
+            "tokens.txt" to 73_896L
+        )
     }
 
     fun initialize(): Boolean = initialize("hi")
@@ -57,6 +73,7 @@ class SavaaniEngine(private val context: Context, private val threads: Int = 4) 
         if (loaded) return true
         lock.withLock {
             closeLocked()
+            seedFromAssetsLocked()
             val paths = File(context.filesDir, DIR)
             enc = loadSession(File(paths, "encoder_int8.onnx"))
             pred = loadSession(File(paths, "predict.onnx"))
@@ -91,6 +108,41 @@ class SavaaniEngine(private val context: Context, private val threads: Int = 4) 
         if (!f.exists() || f.length() == 0L) return null
         val opts = OrtSession.SessionOptions().apply { setIntraOpNumThreads(threads) }
         return OrtEnvironment.getEnvironment().createSession(f.absolutePath, opts)
+    }
+
+    /**
+     * One-time stream-copy of the bundled weights from assets/savaani/ into
+     * filesDir/models/savaani/. OrtSession needs a real file path, so assets
+     * cannot be used in place. Skipped when files already match the expected
+     * byte sizes (repeat launches cost 4 stat() calls). A size mismatch —
+     * partial seed from a killed process, or leftover from an older install —
+     * deletes and re-extracts the affected file.
+     */
+    private fun seedFromAssetsLocked() {
+        val dir = File(context.filesDir, DIR)
+        for ((name, expected) in BUNDLED_FILES) {
+            val dst = File(dir, name)
+            if (dst.exists() && dst.length() == expected) continue
+            try {
+                context.assets.open("$ASSET_DIR/$name").use { input ->
+                    dst.parentFile?.mkdirs()
+                    if (dst.exists()) dst.delete()
+                    val tmp = File(dir, "$name.seed")
+                    java.io.FileOutputStream(tmp).use { input.copyTo(it, 1 shl 20) }
+                    if (tmp.length() != expected) {
+                        throw java.io.IOException(
+                            "seed size mismatch: $name ${tmp.length()} != $expected"
+                        )
+                    }
+                    if (dst.exists()) dst.delete()
+                    if (!tmp.renameTo(dst)) throw java.io.IOException("seed rename failed: $name")
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("Savaani", "asset seed failed for $name: ${e.message}")
+                // Keep any pre-existing file — it may still be usable if this
+                // was a re-check with a transient asset read failure.
+            }
+        }
     }
 
     private fun loadTokens(f: File): List<String>? {

@@ -199,7 +199,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (_appState.value != AppState.READY) return
         if (!asr.isModelLoaded) {
             // Loud failure: silent empty-transcript fallback wasted user taps.
-            setError("Voice input unavailable — ASR model not installed. Get it from the Models screen or type text.")
+            setError("Voice input unavailable — ASR failed to load. Restart the app or type text.")
             return
         }
         _appState.value = AppState.RECORDING
