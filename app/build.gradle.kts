@@ -17,8 +17,8 @@ android {
         applicationId = "com.itantra"
         minSdk = 26 // Android 8.0 per PRD (NNAPI paths need 27+; guarded at runtime)
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.4-demo" // SraVaani STT bundled in APK: fully offline first launch
+        versionCode = 6
+        versionName = "1.5-demo" // SraVaani STT bundled in APK: fully offline first launch
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
