@@ -29,33 +29,16 @@ class MainActivity : ComponentActivity() {
                         color = MaterialTheme.colorScheme.background
                     ) {
                         val nav = rememberNavController()
-                        val firstLaunch = vm.isFirstLaunch()
-                        NavHost(
-                            navController = nav,
-                            startDestination = if (firstLaunch) "onboarding" else "main"
-                        ) {
-                            composable("onboarding") {
-                                OnboardingScreen(vm) {
-                                    vm.finishOnboarding()
-                                    nav.navigate("main") {
-                                        popUpTo("onboarding") { inclusive = true }
-                                    }
-                                }
-                            }
+                        // Minimal 3-tab app: no onboarding, no extra screens.
+                        NavHost(navController = nav, startDestination = "main") {
                             composable("main") {
-                                ChatScreen(vm, onNavigate = { route -> navigate(nav, route) })
+                                DemoScreen(vm, onNavigate = { route -> navigate(nav, route) })
                             }
-                            composable("settings") {
-                                SettingsScreen(vm, onNavigate = { route -> navigate(nav, route) })
+                            composable("voice") {
+                                VoiceScreen(vm, onNavigate = { route -> navigate(nav, route) })
                             }
-                            composable("history") {
-                                HistoryScreen(vm, onNavigate = { route -> navigate(nav, route) })
-                            }
-                            composable("connection") {
-                                ConnectionScreen(vm, onNavigate = { route -> navigate(nav, route) })
-                            }
-                            composable("models") {
-                                ModelsScreen(vm, onNavigate = { route -> navigate(nav, route) })
+                            composable("languages") {
+                                LanguagesScreen(vm, onNavigate = { route -> navigate(nav, route) })
                             }
                         }
                     }
